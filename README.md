@@ -1,4 +1,4 @@
-# Plano em etapas — execução do Trabalho 1 (considerando os arquivos que você já tem)
+# Plano em etapas — Trabalho 1
 
 ## Objetivo: deixar o projeto compilável e reproduzível localmente.
 
