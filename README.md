@@ -1,10 +1,10 @@
 # Plano em etapas — execução do Trabalho 1 (considerando os arquivos que você já tem)
 
-1. Entendimento rápido e preparação do repositório
-
 ## Objetivo: deixar o projeto compilável e reproduzível localmente.
 
-## 1. Ações iniciais
+### 1. Entendimento rápido e preparação do repositório
+
+Ações:
 
 Colocar todos os arquivos (os que você mostrou) no diretório do projeto.
 
