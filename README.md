@@ -1,12 +1,10 @@
-Plano em etapas — execução do Trabalho 1 (considerando os arquivos que você já tem)
-
-Vou dividir o trabalho em etapas práticas, ordenadas e acionáveis — cada etapa lista os arquivos a editar/verificar, o que implementar, e como validar. Não pedi nada porque você já forneceu os arquivos. Se quiser, depois posso transformar isso em um checklist imprimível ou um TODO.md.
+# Plano em etapas — execução do Trabalho 1 (considerando os arquivos que você já tem)
 
 1. Entendimento rápido e preparação do repositório
 
-Objetivo: deixar o projeto compilável e reproduzível localmente.
+## Objetivo: deixar o projeto compilável e reproduzível localmente.
 
-Ações:
+## 1. Ações iniciais
 
 Colocar todos os arquivos (os que você mostrou) no diretório do projeto.
 
@@ -30,7 +28,7 @@ Rodar make e obter executável cgSolver (mesmo que incompleto).
 
 make clean funciona.
 
-2. Corrigir/normalizar headers e tipos
+### 2. Corrigir/normalizar headers e tipos
 
 Objetivo: evitar erros de compilação por headers conflitantes e tipos inconsistentes.
 
@@ -56,7 +54,7 @@ Validação:
 
 gcc -c de cada .c não deve falhar por tipos/headers.
 
-3. Implementar geração da matriz k-diagonal e vetor b
+### 3. Implementar geração da matriz k-diagonal e vetor b
 
 Objetivo: implementar criaKDiagonal usando generateRandomA e generateRandomB, armazenando em formato compacto (vetor denso ou representação por bandas).
 
@@ -84,7 +82,7 @@ Implementar função de debug que imprime as primeiras linhas/diagonais.
 
 Rodar teste: gerar n=20 k=3 e imprimir A e B.
 
-4. Gerar matriz simétrica e positiva definida (SPD)
+### 4. Gerar matriz simétrica e positiva definida (SPD)
 
 Objetivo: transformar A gerada em uma matriz SPD apropriada para o CG.
 
@@ -108,7 +106,7 @@ Teste simples: checar que x^T * ASP * x > 0 para alguns vetores aleatórios x (t
 
 Observação: o enunciado diz “Observe que o sistema linear resultante não atende — precisa ser transformado antes da aplicação” — a transformação via A^T A ou forcando diagonal dominante é aceitável; documente a escolha.
 
-5. Extrair D, L, U (função geraDLU)
+### 5. Extrair D, L, U (função geraDLU)
 
 Objetivo: extrair D (diagonal), L (strict lower with zeros on diagonal) e U (strict upper with zeros) a partir de ASP armazenada.
 
@@ -130,7 +128,7 @@ Validação:
 
 Recombinar L + D + U e comparar com ASP (diferença pequena).
 
-6. Gerar pré-condicionador M (função geraPreCond)
+### 6. Gerar pré-condicionador M (função geraPreCond)
 
 Objetivo: construir/inverter (ou preparar aplicação de) M para os casos necessários (ω=-1 identidade; ω=0 Jacobi; ω=1 Gauss-Seidel; 1<ω<2 SSOR). Lembrar que cálculo de M⁻¹ completo pode ser custoso — o enunciado pede M⁻¹ (ou função que resolve M y = r).
 
@@ -158,7 +156,7 @@ Validação:
 
 Teste apply_precond com vetores simples e comparar com solução direta quando possível.
 
-7. Implementar Gradientes Conjugados pré-condicionado
+### 7. Implementar Gradientes Conjugados pré-condicionado
 
 Objetivo: implementar o algoritmo de PCG (preconditioned conjugate gradients) com critérios de parada e tempos conforme enunciado.
 
@@ -204,7 +202,7 @@ Testes com n pequeno (ex.: n=50, k=3) e verificar convergência.
 
 Comparar solução com lib (se disponível) ou com eliminação direta para pequenas dimensões.
 
-8. Implementar cálculo do resíduo e métricas
+### 8. Implementar cálculo do resíduo e métricas
 
 Objetivo: função calcResiduoSL e cálculo da norma máxima entre iterações.
 
@@ -220,7 +218,7 @@ Validação:
 
 Testar com vetor x conhecido e comparar resultado contra cálculo manual ou multiplicação densa.
 
-9. Entrada e saída conforme especificação
+### 9. Entrada e saída conforme especificação
 
 Objetivo: ler stdin os 5 valores (n k w maxit ε) e imprimir a saída no formato exato pedido.
 
