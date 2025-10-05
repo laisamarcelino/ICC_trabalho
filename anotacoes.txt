@@ -1,0 +1,31 @@
+Vou colocando umas descrições das funcoes aqui, depois decido o que vai para a documentação. 
+Tambem vao ser notas importantes pra entender os codigos
+
+📌 Função: criaKDiagonal
+
+📌 Função: genSimetricaPositiva
+
+Objetivo:
+Transformar o sistema linear Ax = b (com matriz k-diagonal gerada aleatoriamente) em um sistema simétrico definido positivo, que é necessário para o método dos Gradientes Conjugados funcionar corretamente.
+é possível converter A em matriz SPD da forma: Ax = b ⟶ AᵗAx = Aᵗb
+A é simetrico se Aᵗ = A, é positiva se xᵗAx > 0
+
+void genSimetricaPositiva(real_t *A, real_t *b, int n, int k, 
+                          real_t **ASP, real_t *bsp, rtime_t *tempo)
+📥 Parâmetros de entrada:
+
+A: matriz k-diagonal gerada originalmente (vetor linearizado).
+
+b: vetor de termos independentes gerado por generateRandomB().
+
+n: tamanho da matriz.
+
+k: número de diagonais.
+
+📤 Parâmetros de saída:
+
+ASP: matriz simétrica definida positiva 
+
+bsp: vetor transformado (Aᵗ·b).
+
+tempo: tempo gasto na geração, usando timestamp().

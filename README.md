@@ -4,57 +4,31 @@
 
 ### 1. Entendimento rápido e preparação do repositório
 
-Ações:
+**Ações:**
 
-Colocar todos os arquivos (os que você mostrou) no diretório do projeto.
+* [x] Colocar todos os arquivos (os que você mostrou) no diretório do projeto.
 
-Verificar e corrigir inconsistências de tipos/headers (notei sislin.h inclui sislin.h novamente — isso é erro).
+* [x] Verificar e corrigir inconsistências de tipos/headers (notei sislin.h inclui sislin.h novamente — isso é erro).
 
-Garantir o Makefile gerará cgSolver no diretório raiz do pacote conforme a especificação (regra all produz cgSolver).
+* [] Garantir o Makefile gerará cgSolver no diretório raiz do pacote conforme a especificação (regra all produz cgSolver).
 
-Confirmar presença dos arquivos listados em DISTFILES: *.c *.h Makefile LEIAME.
+* [x] Confirmar presença dos arquivos listados em DISTFILES: *.c *.h Makefile LEIAME.
 
-Arquivos a revisar/editar:
+**Arquivos a revisar/editar:**
 
-Makefile — ajustar MODULES, SRCS se necessário; garantir all: produz cgSolver.
+* [?] Makefile — ajustar MODULES, SRCS se necessário; garantir all: produz cgSolver.
 
-sislin.h — remover inclusão recursiva e corrigir protótipos para usar real_t e rtime_t do utils.h (consistência com sislin.c).
+* [x] sislin.h — remover inclusão recursiva e corrigir protótipos para usar real_t e rtime_t do utils.h (consistência com sislin.c).
 
-LEIAME — criar/esboçar (autoria, compilação, uso).
+* [] LEIAME — criar/esboçar (autoria, compilação, uso).
 
-Validação:
+**Validação:**
 
-Rodar make e obter executável cgSolver (mesmo que incompleto).
+* [x] Rodar make e obter executável cgSolver (mesmo que incompleto).
 
-make clean funciona.
+* [x] make clean funciona.
 
-### 2. Corrigir/normalizar headers e tipos
-
-Objetivo: evitar erros de compilação por headers conflitantes e tipos inconsistentes.
-
-Tarefas:
-
-Em sislin.h:
-
-Remover #include "sislin.h" recursivo.
-
-Incluir utils.h.
-
-Usar real_t e rtime_t nas assinaturas (atualmente há mistura double e real_t).
-
-Assegurar protótipos batem com sislin.c (parâmetros e tipos).
-
-Em sislin.c:
-
-Uniformizar tipos (real_t, rtime_t) e protótipos conforme sislin.h.
-
-Incluir utils.h (já tem).
-
-Validação:
-
-gcc -c de cada .c não deve falhar por tipos/headers.
-
-### 3. Implementar geração da matriz k-diagonal e vetor b
+### 2. Implementar geração da matriz k-diagonal e vetor b
 
 Objetivo: implementar criaKDiagonal usando generateRandomA e generateRandomB, armazenando em formato compacto (vetor denso ou representação por bandas).
 
@@ -66,7 +40,7 @@ Opção B (recomendado para esparsidade): armazenar por bandas/k-diagonal em n*k
 
 O que implementar:
 
-criaKDiagonal(int n, int k, real_t **A, real_t **B):
+[x] criaKDiagonal(int n, int k, real_t **A, real_t **B):
 
 Alocar A no formato escolhido (p.ex. real_t *A = calloc(n*k, sizeof(real_t))) e preencher somente as k diagonais com generateRandomA(i,j,k).
 
@@ -82,13 +56,13 @@ Implementar função de debug que imprime as primeiras linhas/diagonais.
 
 Rodar teste: gerar n=20 k=3 e imprimir A e B.
 
-### 4. Gerar matriz simétrica e positiva definida (SPD)
+### 3. Gerar matriz simétrica e positiva definida (SPD)
 
 Objetivo: transformar A gerada em uma matriz SPD apropriada para o CG.
 
 Tarefas:
 
-Implementar genSimetricaPositiva(real_t *A, real_t *b, int n, int k, real_t **ASP, real_t *bsp, rtime_t *tempo):
+* [x] Implementar genSimetricaPositiva(real_t *A, real_t *b, int n, int k, real_t **ASP, real_t *bsp, rtime_t *tempo):
 
 Estratégia simples e eficaz: construir ASP = A^T * A + α I (produto que garante SPD). Porém produto denso tem custo; como é para teste e n pode ser moderado, ok.
 
@@ -106,7 +80,7 @@ Teste simples: checar que x^T * ASP * x > 0 para alguns vetores aleatórios x (t
 
 Observação: o enunciado diz “Observe que o sistema linear resultante não atende — precisa ser transformado antes da aplicação” — a transformação via A^T A ou forcando diagonal dominante é aceitável; documente a escolha.
 
-### 5. Extrair D, L, U (função geraDLU)
+### 4. Extrair D, L, U (função geraDLU)
 
 Objetivo: extrair D (diagonal), L (strict lower with zeros on diagonal) e U (strict upper with zeros) a partir de ASP armazenada.
 
@@ -128,7 +102,7 @@ Validação:
 
 Recombinar L + D + U e comparar com ASP (diferença pequena).
 
-### 6. Gerar pré-condicionador M (função geraPreCond)
+### 5. Gerar pré-condicionador M (função geraPreCond)
 
 Objetivo: construir/inverter (ou preparar aplicação de) M para os casos necessários (ω=-1 identidade; ω=0 Jacobi; ω=1 Gauss-Seidel; 1<ω<2 SSOR). Lembrar que cálculo de M⁻¹ completo pode ser custoso — o enunciado pede M⁻¹ (ou função que resolve M y = r).
 
@@ -156,7 +130,7 @@ Validação:
 
 Teste apply_precond com vetores simples e comparar com solução direta quando possível.
 
-### 7. Implementar Gradientes Conjugados pré-condicionado
+### 6. Implementar Gradientes Conjugados pré-condicionado
 
 Objetivo: implementar o algoritmo de PCG (preconditioned conjugate gradients) com critérios de parada e tempos conforme enunciado.
 
@@ -202,7 +176,7 @@ Testes com n pequeno (ex.: n=50, k=3) e verificar convergência.
 
 Comparar solução com lib (se disponível) ou com eliminação direta para pequenas dimensões.
 
-### 8. Implementar cálculo do resíduo e métricas
+### 7. Implementar cálculo do resíduo e métricas
 
 Objetivo: função calcResiduoSL e cálculo da norma máxima entre iterações.
 
@@ -218,7 +192,7 @@ Validação:
 
 Testar com vetor x conhecido e comparar resultado contra cálculo manual ou multiplicação densa.
 
-### 9. Entrada e saída conforme especificação
+### 8. Entrada e saída conforme especificação
 
 Objetivo: ler stdin os 5 valores (n k w maxit ε) e imprimir a saída no formato exato pedido.
 
@@ -231,44 +205,44 @@ Validar maxit e ε.
 
 ## 📅 Cronograma de Desenvolvimento
 
-### ✅ 05/10 — Planejamento
-- Leitura completa do enunciado.
+### ✅ 05/10 — Planejamento L[x] R[]
+- Leitura completa do enunciado. 
 - Análise dos arquivos já fornecidos.
 - Definição do escopo mínimo (ω = -1, 0.0) e escopo bônus (ω = 1.0, >1.0).
 - Estudo do método dos Gradientes Conjugados e pré-condicionadores.
 
-### ✅ 06–07/10 — Geração de matriz k-diagonal
-- Implementar `criaKDiagonal()` (`sislin.c`)  
+### ✅ 06–07/10 — Geração de matriz k-diagonal L[x] R[]
+- Implementar `criaKDiagonal()` (`sislin.c`) 
   _Responsável: Rafael_  
 - Implementar `genSimetricaPositiva()`  
   _Responsável: Laisa_  
 - Testes de geração com `srandom(20252)`
 
-### ✅ 08–09/10 — Gradientes Conjugados (sem pré-condicionador)
+### ✅ 08–09/10 — Gradientes Conjugados (sem pré-condicionador) L[x] R[]
 - Implementar método CG com ω = -1  
   _Responsável: Laisa_  
 - Cálculo de erro e critério de parada com ε  
   _Responsável: Rafael_
 
-### ✅ 10–11/10 — Pré-condicionador Jacobi
+### ✅ 10–11/10 — Pré-condicionador Jacobi L[x] R[]
 - Gerar matriz M = D  
   _Responsável: Rafael_  
 - Ajustar CG para uso de M⁻¹b e M⁻¹r  
   _Responsável: Laisa_
 
-### ⏳ 12–13/10 — Gauss-Seidel (opcional)
+### ⏳ 12–13/10 — Gauss-Seidel (opcional) L[x] R[]
 - Implementar `geraDLU()`  
   _Responsável: Laisa_  
 - Implementar `geraPreCond()` com ω = 1.0  
   _Responsável: Rafael_
 
-### ⏳ 14/10  — SSOR (opcional)
+### ⏳ 14/10  — SSOR (opcional) L[x] R[]
 - Generalizar `geraPreCond()` para ω > 1.0  
   _Responsável: Rafael_  
 - Integrar SSOR ao solver  
   _Responsável: Laisa_
 
-### ⏳ 15/10 — Medição de tempos
+### ⏳ 15/10 — Medição de tempos L[x] R[]
 - Medir:
   - `tempo_pc`
   - `tempo_iter`
@@ -277,13 +251,13 @@ Validar maxit e ε.
 - Testar desempenho para diferentes parâmetros  
   _Responsável: Rafael_
 
-### ⏳ 16/10 — Tratamento de erros
+### ⏳ 16/10 — Tratamento de erros L[x] R[]
 - Mensagens em `stderr` e encerramento com `exit(1)`  
   _Responsável: Laisa_  
 - Testes de não convergência e falhas numéricas  
   _Responsável: Rafael_
 
-### ⏳ 17/10 — Finalização
+### ⏳ 17/10 — Finalização L[x] R[]
 - Escrever arquivo `LEIAME` com:
   - Autores
   - RA
@@ -292,7 +266,7 @@ Validar maxit e ε.
 - Verificar `Makefile` (`all`, `clean`, `purge`, `dist`)  
   _Responsável: Laisa_
 
-### ⏳ 18/10 — Revisão e Entrega
+### ⏳ 18/10 — Revisão e Entrega L[x] R[]
 - Testes finais (entrada, saída, erro)  
   _Responsável: Laisa e Rafael_  
 - Compactação com `tar/gzip` no formato `login1-login2.tgz`

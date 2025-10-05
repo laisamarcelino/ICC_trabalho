@@ -1,39 +1,44 @@
-        CC = gcc
+# Compilador e flags
+CC = gcc
+CFLAGS = -O0
+LFLAGS = -lm
 
-    CFLAGS = -O0
-    LFLAGS = -lm
+# Nome do executável e arquivos do projeto
+PROG = cgSolver
+MODULES = utils pcgc sislin $(PROG)
+OBJS = $(addsuffix .o, $(MODULES))
+SRCS = $(addsuffix .c, $(MODULES)) $(addsuffix .h, $(MODULES))
 
-      PROG = cgSolver
-      MODULES = utils \
-	        pcgc \
-                $(PROG)
-      OBJS = $(addsuffix .o,$(MODULES))
-      SRCS = $(addsuffix .c,$(MODULES)) $(addsuffix .h,$(MODULES))
-
-# Lista de arquivos para distribuição
+# Arquivos para empacotamento
 DISTFILES = *.c *.h Makefile LEIAME
-DISTDIR = login1-login2
+DISTDIR = lmsr21-rrk24
 
-.PHONY: clean purge dist all
+.PHONY: all clean purge dist debug
 
-%.o: %.c %.h utils.h
-	$(CC) -c $(CFLAGS) $<
+# all: compila e gera ./cgSolver
+all: $(PROG)
 
-$(PROG):  $(OBJS)
+# Regra para criar o executável
+$(PROG): $(OBJS)
 	$(CC) -o $@ $^ $(LFLAGS)
 
-debug:   CFLAGS+=-D__DEBUG__
+# Compilar cada .c individualmente
+%.o: %.c
+	$(CC) -c $(CFLAGS) $< -o $@
+
+# Debug mode
+debug: CFLAGS += -D__DEBUG__
 debug: $(PROG)
 
+# Limpeza dos arquivos gerados
 clean:
-	@echo "Limpando sujeira ....."
-	@rm -rf core *~ *.bak
+	@echo "Limpando arquivos temporários..."
+	@rm -f a.out *.o *.bak *~ core $(PROG)
 
 purge: clean
-	@echo "Fazendo a faxina ....."
-	@rm -f a.out *.o $(PROG)
+	@echo "Removendo executável e temporários..."
 
-
+# Empacotamento para entrega
 dist: purge
 	@echo "Gerando arquivo de distribuição ($(DISTDIR).tgz) ..."
 	@ln -s . $(DISTDIR)
