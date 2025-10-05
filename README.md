@@ -228,50 +228,47 @@ Implementar parsing robusto de stdin (ler com scanf, validar ranges: n>10, k>1 &
 
 Validar maxit e ε.
 
-Saída (stdout) exatamente:
-
---------------------- versao 2 ----------------------------
 
 ## 📅 Cronograma de Desenvolvimento
 
-### ✅ 05/10 (Sábado) — Planejamento
+### ✅ 05/10 — Planejamento
 - Leitura completa do enunciado.
 - Análise dos arquivos já fornecidos.
 - Definição do escopo mínimo (ω = -1, 0.0) e escopo bônus (ω = 1.0, >1.0).
 - Estudo do método dos Gradientes Conjugados e pré-condicionadores.
 
-### ✅ 06–07/10 (Dom–Seg) — Geração de matriz k-diagonal
+### ✅ 06–07/10 — Geração de matriz k-diagonal
 - Implementar `criaKDiagonal()` (`sislin.c`)  
   _Responsável: Rafael_  
 - Implementar `genSimetricaPositiva()`  
   _Responsável: Laisa_  
 - Testes de geração com `srandom(20252)`
 
-### ✅ 08–09/10 (Ter–Qua) — Gradientes Conjugados (sem pré-condicionador)
+### ✅ 08–09/10 — Gradientes Conjugados (sem pré-condicionador)
 - Implementar método CG com ω = -1  
   _Responsável: Laisa_  
 - Cálculo de erro e critério de parada com ε  
   _Responsável: Rafael_
 
-### ✅ 10–11/10 (Qui–Sex) — Pré-condicionador Jacobi
+### ✅ 10–11/10 — Pré-condicionador Jacobi
 - Gerar matriz M = D  
   _Responsável: Rafael_  
 - Ajustar CG para uso de M⁻¹b e M⁻¹r  
   _Responsável: Laisa_
 
-### ⏳ 12–13/10 (Sáb–Dom) — Gauss-Seidel (opcional)
+### ⏳ 12–13/10 — Gauss-Seidel (opcional)
 - Implementar `geraDLU()`  
   _Responsável: Laisa_  
 - Implementar `geraPreCond()` com ω = 1.0  
   _Responsável: Rafael_
 
-### ⏳ 14/10 (Terça) — SSOR (opcional)
+### ⏳ 14/10  — SSOR (opcional)
 - Generalizar `geraPreCond()` para ω > 1.0  
   _Responsável: Rafael_  
 - Integrar SSOR ao solver  
   _Responsável: Laisa_
 
-### ⏳ 15/10 (Quarta) — Medição de tempos
+### ⏳ 15/10 — Medição de tempos
 - Medir:
   - `tempo_pc`
   - `tempo_iter`
@@ -280,13 +277,13 @@ Saída (stdout) exatamente:
 - Testar desempenho para diferentes parâmetros  
   _Responsável: Rafael_
 
-### ⏳ 16/10 (Quinta) — Tratamento de erros
+### ⏳ 16/10 — Tratamento de erros
 - Mensagens em `stderr` e encerramento com `exit(1)`  
   _Responsável: Laisa_  
 - Testes de não convergência e falhas numéricas  
   _Responsável: Rafael_
 
-### ⏳ 17/10 (Sexta) — Finalização
+### ⏳ 17/10 — Finalização
 - Escrever arquivo `LEIAME` com:
   - Autores
   - RA
@@ -295,7 +292,7 @@ Saída (stdout) exatamente:
 - Verificar `Makefile` (`all`, `clean`, `purge`, `dist`)  
   _Responsável: Laisa_
 
-### ⏳ 18/10 (Sábado) — Revisão e Entrega
+### ⏳ 18/10 — Revisão e Entrega
 - Testes finais (entrada, saída, erro)  
   _Responsável: Laisa e Rafael_  
 - Compactação com `tar/gzip` no formato `login1-login2.tgz`
@@ -303,4 +300,5 @@ Saída (stdout) exatamente:
 
 ---
 
+## 📂 Estrutura Esperada
 
