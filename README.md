@@ -28,7 +28,7 @@
 
 * [x] make clean funciona.
 
-### 2. Implementar geração da matriz k-diagonal e vetor b
+### 2. Implementar geração da matriz k-diagonal e vetor b [x]
 
 Objetivo: implementar criaKDiagonal usando generateRandomA e generateRandomB, armazenando em formato compacto (vetor denso ou representação por bandas).
 
@@ -40,7 +40,7 @@ Opção B (recomendado para esparsidade): armazenar por bandas/k-diagonal em n*k
 
 O que implementar:
 
-[x] criaKDiagonal(int n, int k, real_t **A, real_t **B):
+criaKDiagonal(int n, int k, real_t **A, real_t **B):
 
 Alocar A no formato escolhido (p.ex. real_t *A = calloc(n*k, sizeof(real_t))) e preencher somente as k diagonais com generateRandomA(i,j,k).
 
@@ -56,13 +56,13 @@ Implementar função de debug que imprime as primeiras linhas/diagonais.
 
 Rodar teste: gerar n=20 k=3 e imprimir A e B.
 
-### 3. Gerar matriz simétrica e positiva definida (SPD)
+### 3. Gerar matriz simétrica e positiva definida (SPD) [x]
 
 Objetivo: transformar A gerada em uma matriz SPD apropriada para o CG.
 
 Tarefas:
 
-* [x] Implementar genSimetricaPositiva(real_t *A, real_t *b, int n, int k, real_t **ASP, real_t *bsp, rtime_t *tempo):
+* Implementar genSimetricaPositiva(real_t *A, real_t *b, int n, int k, real_t **ASP, real_t *bsp, rtime_t *tempo):
 
 Estratégia simples e eficaz: construir ASP = A^T * A + α I (produto que garante SPD). Porém produto denso tem custo; como é para teste e n pode ser moderado, ok.
 
