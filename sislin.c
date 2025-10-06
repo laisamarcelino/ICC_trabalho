@@ -50,7 +50,7 @@ void criaKDiagonal(int n, int k, real_t **A, real_t **B) {
   }
 }
 
-/* Gera matriz simetrica positiva */
+/* Gera matriz simetrica positiva (A = Aᵗ) */
 void genSimetricaPositiva(real_t *A, real_t *b, int n, int k,
                           real_t **ASP, real_t *bsp, rtime_t *tempo)
 {

@@ -28,6 +28,13 @@ int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
                rtime_t *t_iter, rtime_t *t_res,
                real_t *res_norm_out);
 
+// CG com pré-condicionador de Jacobi (ω = 0.0 → M = D)
+// Onde D é a matriz diagonal de A
+int cg_jacobi_prec(const real_t *A, const real_t *b, real_t *x,
+                   int n, int maxit, real_t eps,
+                   rtime_t *t_iter, rtime_t *t_res,
+                   real_t *res_norm_out);
+
 #ifdef __cplusplus
 }
 #endif
