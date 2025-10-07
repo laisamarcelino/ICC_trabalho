@@ -4,49 +4,7 @@
 #include <float.h>
 #include "pcgc.h"
 #include "utils.h"
-
-// ---------- helpers básicos ----------
-
-static inline void vec_set_zero(real_t *v, int n) {
-  for (int i = 0; i < n; ++i) v[i] = 0.0;
-}
-
-static inline void vec_copy(real_t *dst, const real_t *src, int n) {
-  for (int i = 0; i < n; ++i) dst[i] = src[i];
-}
-
-static inline real_t dot(const real_t *a, const real_t *b, int n) {
-  real_t s = 0.0;
-  for (int i = 0; i < n; ++i) s += a[i]*b[i];
-  return s;
-}
-
-static inline void axpy(real_t *y, real_t a, const real_t *x, int n) {
-  // y := y + a*x
-  for (int i = 0; i < n; ++i) y[i] += a * x[i];
-}
-
-static inline void matvec_dense(const real_t *A, const real_t *x, real_t *y, int n) {
-  for (int i = 0; i < n; ++i) {
-    real_t s = 0.0;
-    const real_t *Ai = &A[i*(size_t)n];
-    for (int j = 0; j < n; ++j) s += Ai[j] * x[j];
-    y[i] = s;
-  }
-}
-
-static inline real_t norm_inf_diff(const real_t *a, const real_t *b, int n) {
-  real_t m = 0.0;
-  for (int i = 0; i < n; ++i) {
-    real_t d = fabs(a[i] - b[i]);
-    if (d > m) m = d;
-  }
-  return m;
-}
-
-static inline real_t norm2(const real_t *v, int n) {
-  return sqrt(dot(v, v, n));
-}
+#include "helpers.h"
 
 // ---------- CG sem pré-condicionador (ω = -1) ----------
 
@@ -180,15 +138,6 @@ static inline void jacobi_solve(const real_t *A, const real_t *r, real_t *z, int
   }
 }
 
-// A: matriz SPD (simétrica positiva definida) n×n linearizada
-// b: vetor termo independente de tamanho n
-// x: vetor solução (saída) de tamanho n, inicializado em x0 = 0
-// n: dimensão do sistema
-// maxit: número máximo de iterações
-// eps: tolerância para critério de parada ||x_new - x_old||_inf < eps
-// t_iter: tempo médio por iteração (saída, em ms)
-// t_res: tempo do cálculo do resíduo final (saída, em ms)
-// res_norm_out: norma do resíduo final ||b - Ax||_2 (saída, opcional)
 int cg_jacobi_prec(const real_t *A, const real_t *b, real_t *x,
                    int n, int maxit, real_t eps,
                    rtime_t *t_iter, rtime_t *t_res,

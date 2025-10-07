@@ -5,23 +5,29 @@ static inline real_t generateRandomB(unsigned int k);
 
 /**
  * Função que gera os coeficientes de um sistema linear k-diagonal
- * @param i,j coordenadas do elemento a ser calculado (0<=i,j<n)
- * @param k numero de diagonais da matriz A
+ * i,j = coordenadas do elemento a ser calculado (0<=i,j<n)
+ * k = número de diagonais da matriz A
  */
 static inline real_t generateRandomA(unsigned int i, unsigned int j, unsigned int k)
 {
   static real_t invRandMax = 1.0 / (real_t)RAND_MAX;
-  return ((i == j) ? (real_t)(k << 1) : 1.0) * (real_t)random() * invRandMax;
+
+  if (i == j) {
+    return (real_t)(k * 2) * (real_t)random() * invRandMax;
+  } else {
+    return 1.0 * (real_t)random() * invRandMax;
+  }
 }
 
 /**
  * Função que gera os termos independentes de um sistema linear k-diagonal
- * @param k numero de diagonais da matriz A
+ * k = número de diagonais da matriz A
  */
 static inline real_t generateRandomB(unsigned int k)
 {
   static real_t invRandMax = 1.0 / (real_t)RAND_MAX;
-  return (real_t)(k << 2) * (real_t)random() * invRandMax;
+
+  return (real_t)(k * 4) * (real_t)random() * invRandMax;
 }
 
 /* Cria matriz 'A' k-diagonal e Termos independentes B */
@@ -29,13 +35,13 @@ void criaKDiagonal(int n, int k, real_t **A, real_t **B) {
   // Aloca matriz A (n x n) linearizada e vetor B (n)
   *A = (real_t *) calloc(n * n, sizeof(real_t));
   *B = (real_t *) calloc(n, sizeof(real_t));
-
   if (*A == NULL || *B == NULL) {
       fprintf(stderr, "Erro ao alocar memória em criaKDiagonal\n");
       exit(1);
   }
 
-  int offset = k / 2;  // número de diagonais abaixo/acima da principal
+  // Número de diagonais abaixo/acima da principal
+  int offset = k / 2;  
 
   for (int i = 0; i < n; i++) {
       // Preenche a linha i da matriz A
@@ -56,7 +62,7 @@ void genSimetricaPositiva(real_t *A, real_t *b, int n, int k,
 {
   *tempo = timestamp();
 
-  // Aloca ASP e bsp
+  // Alocação da matriz
   *ASP = (real_t *)calloc(n * n, sizeof(real_t));
   if (*ASP == NULL)
   {
@@ -64,10 +70,11 @@ void genSimetricaPositiva(real_t *A, real_t *b, int n, int k,
     exit(1);
   }
 
+  // Atribui valor 0 para B simétrica positiva (Aᵗ·b) ou bsp
   for (int i = 0; i < n; i++)
     bsp[i] = 0.0;
 
-  // Calcula ASP = Aᵗ·A  (produto matricial)
+  // Calcula ASP (A simétrica positiva (Aᵗ·A))
   for (int i = 0; i < n; i++)
   { // linha de Aᵗ (coluna de A)
     for (int j = 0; j < n; j++)
@@ -83,7 +90,7 @@ void genSimetricaPositiva(real_t *A, real_t *b, int n, int k,
     }
   }
 
-  // Calcula bsp = Aᵗ·b
+  // Calcula bsp (B simétrica positiva (Aᵗ·b))
   for (int i = 0; i < n; i++)
   { // Aᵗ[i][*]
     real_t sum = 0.0;

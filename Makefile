@@ -5,7 +5,7 @@ LFLAGS = -lm
 
 # Nome do executável e arquivos do projeto
 PROG = cgSolver
-MODULES = utils pcgc sislin $(PROG)
+MODULES = utils pcgc sislin helpers $(PROG)
 OBJS = $(addsuffix .o, $(MODULES))
 SRCS = $(addsuffix .c, $(MODULES)) $(addsuffix .h, $(MODULES))
 

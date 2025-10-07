@@ -30,6 +30,15 @@ int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
 
 // CG com pré-condicionador de Jacobi (ω = 0.0 → M = D)
 // Onde D é a matriz diagonal de A
+// A: matriz SPD (simétrica positiva definida) n×n linearizada
+// b: vetor termo independente de tamanho n
+// x: vetor solução (saída) de tamanho n, inicializado em x0 = 0
+// n: dimensão do sistema
+// maxit: número máximo de iterações
+// eps: tolerância para critério de parada ||x_new - x_old||_inf < eps
+// t_iter: tempo médio por iteração (saída, em ms)
+// t_res: tempo do cálculo do resíduo final (saída, em ms)
+// res_norm_out: norma do resíduo final ||b - Ax||_2 (saída, opcional)
 int cg_jacobi_prec(const real_t *A, const real_t *b, real_t *x,
                    int n, int maxit, real_t eps,
                    rtime_t *t_iter, rtime_t *t_res,
