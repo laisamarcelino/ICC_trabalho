@@ -64,14 +64,12 @@ int main(void) {
 
   // ω = 1.0: pré-condicionador de Gauss-Seidel
   else if (w == 1.0) {
-    // TODO: Implementar CG com pré-condicionador de Gauss-Seidel
-    // it = cg_gauss_seidel_prec(ASP, bsp, x, n, maxit, eps, &titer, &tres, &res_norm);
+    it = cg_gs_prec(ASP, bsp, x, n, maxit, eps, &titer, &tres, &res_norm);
   }
 
   // 1.0 < ω < 2.0: pré-condicionador SSOR
   else if (w > 1.0 && w < 2.0) {
-    // TODO: Implementar CG com pré-condicionador SSOR
-    // it = cg_ssor_prec(ASP, bsp, x, n, maxit, eps, w, &titer, &tres, &res_norm);
+    it = cg_ssor_prec(ASP, bsp, x, n, maxit, eps, w, &titer, &tres, &res_norm);
   }
 
   else {

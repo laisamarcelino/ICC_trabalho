@@ -44,6 +44,40 @@ int cg_jacobi_prec(const real_t *A, const real_t *b, real_t *x,
                    rtime_t *t_iter, rtime_t *t_res,
                    real_t *res_norm_out);
 
+// CG com pré-condicionador de Gauss-Seidel (ω = 1.0 → M = L + D)
+// Onde L é a matriz triangular inferior de A
+// A: matriz SPD (simétrica positiva definida) n×n linearizada
+// b: vetor termo independente de tamanho n
+// x: vetor solução (saída) de tamanho n, inicializado em x0 = 0
+// n: dimensão do sistema
+// maxit: número máximo de iterações
+// eps: tolerância para critério de parada ||x_new - x_old||_inf < eps
+// t_iter: tempo médio por iteração (saída, em ms)
+// t_res: tempo do cálculo do resíduo final (saída, em ms)
+// res_norm_out: norma do resíduo final ||b - Ax||_2 (saída, opcional)
+int cg_gs_prec(const real_t *A, const real_t *b, real_t *x,
+               int n, int maxit, real_t eps,
+               rtime_t *t_iter, rtime_t *t_res,
+               real_t *res_norm_out);
+
+// CG com pré-condicionador SSOR (Simultaneous Successive Over-Relaxation)
+// ω = 1.0 → M = L + D (Gauss-Seidel) + U
+// Onde L é a matriz triangular inferior de A, e U é a triangular superior
+// A: matriz SPD (simétrica positiva definida) n×n linearizada
+// b: vetor termo independente de tamanho n
+// x: vetor solução (saída) de tamanho n, inicializado em x0 = 0
+// n: dimensão do sistema
+// maxit: número máximo de iterações
+// eps: tolerância para critério de parada ||x_new - x_old||_inf < eps
+// omega: fator de relaxação (geralmente entre 1.0 e 2.0)
+// t_iter: tempo médio por iteração (saída, em ms)
+// t_res: tempo do cálculo do resíduo final (saída, em ms)
+// res_norm_out: norma do resíduo final ||b - Ax||_2 (saída, opcional)
+int cg_ssor_prec(const real_t *A, const real_t *b, real_t *x,
+                 int n, int maxit, real_t eps, real_t omega,
+                 rtime_t *t_iter, rtime_t *t_res,
+                 real_t *res_norm_out);
+
 #ifdef __cplusplus
 }
 #endif
