@@ -218,12 +218,23 @@ M[0,0] * z[0] = r[0]  →  z[0] = r[0] / M[0,0] = r[0] / A[0,0]
 M[1,1] * z[1] = r[1]  →  z[1] = r[1] / M[1,1] = r[1] / A[1,1]  
 M[2,2] * z[2] = r[2]  →  z[2] = r[2] / M[2,2] = r[2] / A[2,2]
 */
+
+// Essa função (jacobi_solve) faz a aplicação do pré-condicionador de Jacobi
+// Ela pega o elemento da diagonal principal da Matriz A (Aii)
+// Se Aii for muito pequeno, então define z[i] = 0 para evitar divisão por zero
+// Caso contraŕio, faz o cálculo de z (z = r / Aii)
+// Lembrando que z é um vetor qualquer para testar o comportamento da matriz A
+// Também lembrando que o resíduo é r = b - Ax
+
+// O pré-condicionador de Jacobi , pela teoria, usa apenas a diagonal de A, por isso é dessa maneira
+// Essa divisão (z = r / Aii) serve para corrigir (ou normalizar) cada componente do resíduo de acordo com a escala da diagonal de A
+// Cada z[i] terá os valores normalizados da diagonal principal (Aii) da matriz A
 void jacobi_solve(const real_t *A, const real_t *r, real_t *z, int n) {
   for (int i = 0; i < n; ++i) {
     real_t aii = A[i*(size_t)n + i]; // elemento diagonal A[i][i]
     if (fabs(aii) <= DBL_EPSILON) {
       fprintf(stderr, "jacobi_solve: elemento diagonal A[%d][%d] = %g muito pequeno\n", i, i, aii);
-      z[i] = 0.0; // fallback
+      z[i] = 0.0; // Se for muito próximo de zero, é igual a zero
     } else {
       z[i] = r[i] / aii; // resíduo pré-condicionado = resíduo atual / A[i][i]
     }
@@ -252,6 +263,8 @@ int cg_jacobi_prec(const real_t *A, const real_t *b, real_t *x,
     return -1;
   }
 
+  // O resto é exatamente igual a função sem pré-condicionador, mas agora temos z com 
+  // valores normalizados (corrigidos) pelo pré-condicionador
   // x0 = 0
   vec_set_zero(x, n);
 
@@ -343,6 +356,10 @@ int cg_jacobi_prec(const real_t *A, const real_t *b, real_t *x,
 }
 
 // ---------- CG com pré-condicionador de Gauss-Seidel (ω = 1.0) ----------
+
+// Essa função (gauss_seidel_solve) faz a aplicação do pré-condicionador de Gauss-Seidel
+// ... explicarei depois que entender ...
+// ...
 
 // Função auxiliar: resolve (D+L)z = r por forward substitution
 void gauss_seidel_solve(const real_t *A, const real_t *r, real_t *z, int n) {
@@ -454,6 +471,10 @@ int cg_gs_prec(const real_t *A, const real_t *b, real_t *x,
 }
 
 // ---------- CG com pré-condicionador SSOR (1.0 < ω < 2.0) ----------
+
+// Essa função (ssor_prec_solve) faz a aplicação do pré-condicionador SSOR
+// ... explicarei depois que entender ...
+// ...
 
 // Função auxiliar: aplica o pré-condicionador SSOR (z = M^{-1} r)
 void ssor_prec_solve(const real_t *A, const real_t *r, real_t *z, int n, real_t omega) {
