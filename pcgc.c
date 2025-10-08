@@ -5,6 +5,39 @@
 #include "pcgc.h"
 #include "utils.h"
 #include "helpers.h"
+// ---------- O que é o método dos Gradientes Conjugados (CG) ----------
+
+// O objetivo do método (iterativo) dos Gradientes Conjugados é encontrar x, no qual temos Ax=b 
+// ou seja, conhecemos o valor da matriz A (daremos) e o valor dos coeficientes b (daremos)
+
+// Objetivo: queremos encontrar x que satisfaz a equação Ax=b.
+
+// Antes de explicar o método, devemos saber que o método só funciona bem se a matriz A
+// for simétrica definida positiva. Simétrica é quando ela é igual sua transposta (A = A^t).
+// Definida positiva é quando o produto zᵗ*A*z > 0.
+
+// z é um vetor qualquer (não nulo) que serve para testar o comportamento da matriz A.
+// A operação zᵗ*(A*z) é um produto interno entre zᵗ e Az, por isso usamos a função auxiliar
+// "dot", que representa o produto interno
+
+// Nós precisamos desse teste (zᵗ*A*z > 0) pois ele garante que A nunca transforma um vetor (não nulo)
+// em uma direção oposta ao próprio vetor, ou seja, que A é "positiva". Isso quer dizer que o algoritmo
+// é numericamente estável e converge.
+
+// Nós usamos esse zᵗ e z pois essa combinação transforma uma matriz em um ÚNICO número escalar.
+// Isso permite ver com mais facilidade as propriedades de A.
+
+// Vou continuar a explicação
+
+// O método dos Gradientes Conjugados é iterativo. O gradiente (erro da iteração atual) dá a 
+// DIREÇÃO em que o erro diminui mais rápido.
+
+// Mas não podemos ir sempre pelo gradiente! Pois ele "faz zig-zag", não dando bons resultados sempre.
+
+// Por isso, precisamos de direções independentes e "bem escolhidas", que são as direções conjugadas (pk)!
+
+// Cada direção pk aponta para um novo caminho e corrige uma parte do erro. Ela é escolhida de modo
+// que não interfere nas correções anteriores (iterações anteriores que vão convergindo para o método)
 
 // ---------- CG sem pré-condicionador (ω = -1) ----------
 
@@ -18,7 +51,7 @@ int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
     return -1;
   }
 
-  // aloca vetores auxiliares
+  // Alocação de vetores auxiliares
   real_t *r  = (real_t*) malloc((size_t)n * sizeof(real_t));
   real_t *p  = (real_t*) malloc((size_t)n * sizeof(real_t));
   real_t *Ap = (real_t*) malloc((size_t)n * sizeof(real_t));
@@ -29,25 +62,44 @@ int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
     return -1;
   }
 
-  // x0 = 0
+  // Chute inicial do vetor (z, que foi dito acima)
   vec_set_zero(x, n);
 
-  // r0 = b - A*x0 = b
+  // Primeiro resíduo que será gerado
   vec_copy(r, b, n);
 
-  // p0 = r0  (sem pré-condicionador)
+  // p0 = r0 (primeira direção da busca - pk, mas como é a primeira é p0 - sem pré-condicionador)
+
+  // Sabemos que o pré-condicionador M é usado para modificar o resíduo: p0 = M⁻¹r0
+
+  // A matriz M é uma aproximação de A que serve para facilitar sua solução. Quando
+  // não temos pré condicionador, é equivalente a dizer que não queremos fazer nenhuma transformação, 
+  // ou seja, temos M = I pois a matriz identidade não altera o resultado quando multiplicamos ela por
+  // um vetor, logo, p0 = I⁻¹r0 -> p0 = r0
+
+  // Lembrando que usando o métodos CG com pré-condicionadores, quer dizer multiplicar uma matriz
+  // M (auxiliar) a um sistema, pra tornar ele mais fácil de resolver. Com a notação M⁻¹Ax = M⁻¹b.
+  
+  // Porém, ao invés de aplicarmos diretamente M⁻¹Ax = M⁻¹b, a teoria nos diz que precisamos aplicar
+  // isso nas etapas de atualização do método, ou seja, nos cálculos de resíduo (rk) e direção (pk)
+  // que é aqui mesmo.
   vec_copy(p, r, n);
 
-  real_t rho = dot(r, r, n); // r^T r
+  // Calcula o produto interno do resíduo com ele mesmo.
+  // Isso mete o tamanho do erro, e indica o quão longe (passo) está a solução atual (xk) da exata
+  // Sem esse rho, não conseguimos criar as outras direções conjugadas
+  real_t rho = dot(r, r, n);
+  // Se rho for muito pequeno, x0 já satisfaz Ax=b então método nem precisa iterar
   if (rho <= DBL_EPSILON) {
-    // já convergiu em x0
-    if (t_iter) *t_iter = 0.0;
-    // resíduo final (≈ ||b||2, pois x=0)
+    if (t_iter) 
+      *t_iter = 0.0;
+
     if (t_res) {
       *t_res = timestamp();
       *t_res = timestamp() - *t_res;
     }
-    if (res_norm_out) *res_norm_out = sqrt(rho);
+    if (res_norm_out) 
+      *res_norm_out = sqrt(rho);
     free(r); free(p); free(Ap); free(x_old);
     return 0;
   }
@@ -55,30 +107,53 @@ int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
   int it = 0;
   rtime_t t_loop = timestamp();
 
+  // Caso contrário, temos o início das iterações
+  // Aqui é o início das iterações do método CG sem pré-condicionadores
   for (it = 1; it <= maxit; ++it) {
-    // Ap = A * p
+    // Vamos calcular o tamanho do passo na direção de busca pk
+    // Isso é bom para mover x na direção de busca pk para reduzir o resíduo
+    // matvec_dense é a multiplicação de uma matriz por um vetor
+    // Estou multiplicando a matriz A pelo vetor pk
+    // O resultado é armazenado no vetor Ap
     matvec_dense(A, p, Ap, n);
 
+    // Aqui estamos medindo a curvatura da função de busca na direção pk
+    // Se o "denominador" for muito peuqueno ou negativo, o passo ak não faria sentido
     real_t denom = dot(p, Ap, n); // p^T A p
     if (!(denom > 0.0) || !isfinite(denom)) {
       fprintf(stderr, "cg_no_prec: breakdown numérico (p^T A p = %g)\n", denom);
       free(r); free(p); free(Ap); free(x_old);
       return -1;
     }
-
+    // Com esse valor, calculamos o tamanho do passo
+    // Serve para sabermos a quantidade que devemos avançar na direção de pk
+    // ak é o passo e nos diz o quanto devemos andar
     real_t alpha = rho / denom;
 
     // x_{k+1} = x_k + alpha p_k
+    // Salvamos o antigo x (para medir a diferença)
     vec_copy(x_old, x, n);
+    // Aplicamos o passo na direção de pk e geramos um novo x
     axpy(x, alpha, p, n);
+    // Após isso, nós conseguimos avançar na iteração do método CG.
+    // Caminhamos na "direção de busca ótima"
 
     // r_{k+1} = r_k - alpha Ap
-    for (int i = 0; i < n; ++i) r[i] -= alpha * Ap[i];
+    // Aqui, atualizamos o resíduo (diminuindo ele, até que fique pequeno o suficiente para parar)
+    // Resíduo = resíduo - passo * Ap
+    for (int i = 0; i < n; ++i) 
+      r[i] -= alpha * Ap[i];
 
     // critério do trabalho: ||x_new - x_old||_inf < eps
+    // Aqui está o criério de parada da iteração, que decide se o método já convergiu para a solução
+    // O cálculo dele está na função norm_inf_diff e vamos comparar ela com a tolerância que queremos (eps)
     real_t aprox_err = norm_inf_diff(x, x_old, n);
-    if (aprox_err < eps) break;
+    if (aprox_err < eps) 
+      break;
 
+    // Nós calculamos o novo valor de rho depois de atualizar o resíduo
+    // Isso serve para medir o novo tamanho do erro e usado para calcular a próxima direção de busca (β_k)
+    // β_k é um escalar que decide quanto da direção antiga pk deve entrar na nova direção
     real_t rho_new = dot(r, r, n); // (r_{k+1})^T (r_{k+1})
     if (!isfinite(rho_new)) {
       fprintf(stderr, "cg_no_prec: rho_new inválido\n");
@@ -86,30 +161,47 @@ int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
       return -1;
     }
 
+    // Cálcula o escalar da nova direção de busca (β)
     real_t beta = rho_new / rho;
 
+    // A nova direção é a combinação do novo resíduo com a direção de busca anterior pk * β_k
     // p_{k+1} = r_{k+1} + beta p_k
-    for (int i = 0; i < n; ++i) p[i] = r[i] + beta * p[i];
+    for (int i = 0; i < n; ++i) 
+      p[i] = r[i] + beta * p[i];
 
+    // Atualiza de fato rho
     rho = rho_new;
   }
 
+  // Cálculo do tempo métdio por iteração
   t_loop = timestamp() - t_loop;
-  if (t_iter) *t_iter = (it > 0 ? t_loop / (real_t)it : 0.0);
+  if (t_iter) {
+    if (it > 0)
+      *t_iter = t_loop / (real_t)it;
+    else
+      *t_iter = 0.0;
+  }
 
-  // resíduo final e tempo_residuo
+  // Cálculo do resíduo final e tempo do resíduo final
   if (t_res || res_norm_out) {
     if (t_res) *t_res = timestamp();
 
+    // Calcula o resíduo final
     // r = b - A x
-    matvec_dense(A, x, Ap, n); // reutiliza Ap como A*x
-    for (int i = 0; i < n; ++i) r[i] = b[i] - Ap[i];
-
-    if (res_norm_out) *res_norm_out = norm2(r, n);
-    if (t_res) *t_res = timestamp() - *t_res;
+    matvec_dense(A, x, Ap, n);
+    for (int i = 0; i < n; ++i) 
+      r[i] = b[i] - Ap[i];
+    // Calcula a norma L2 do resíduo
+    if (res_norm_out) 
+      *res_norm_out = norm2(r, n);
+    // Calcula o tempo gasto para calcular o resíduo final
+    if (t_res) 
+      *t_res = timestamp() - *t_res;
   }
 
+  // Liberação de memória
   free(r); free(p); free(Ap); free(x_old);
+  // Retorna o número de iterações realizadas
   return it;
 }
 
