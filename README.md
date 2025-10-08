@@ -25,13 +25,13 @@
 - Ajustar CG para uso de M⁻¹b e M⁻¹r  
   _Responsável: Laisa_
 
-### ⏳ 12–13/10 — Gauss-Seidel (opcional) L[x] R[]
+### ✅ 12–13/10 — Gauss-Seidel (opcional) L[x] R[]
 - Implementar `geraDLU()`  
   _Responsável: Laisa_  
 - Implementar `geraPreCond()` com ω = 1.0  
   _Responsável: Rafael_
 
-### ⏳ 14/10  — SSOR (opcional) L[x] R[]
+### ✅ 14/10  — SSOR (opcional) L[x] R[]
 - Generalizar `geraPreCond()` para ω > 1.0  
   _Responsável: Rafael_  
 - Integrar SSOR ao solver  
