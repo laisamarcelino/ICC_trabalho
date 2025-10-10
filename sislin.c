@@ -145,6 +145,7 @@ void genSimetricaPositiva(real_t *A, real_t *b, int n, int k,
   *tempo = timestamp() - *tempo;
 }
 
+// Opcionais
 
 // =====================================================
 // geraDLU
