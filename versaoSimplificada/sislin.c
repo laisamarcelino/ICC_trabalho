@@ -98,33 +98,3 @@ void genSimetricaPositiva(real_t *A, real_t *b, int n, int k,
 
   *tempo = timestamp() - *tempo;
 }
-
-void geraDLU(real_t *A, int n, int k,
-             real_t **D, real_t **L, real_t **U, rtime_t *tempo)
-{
-  *tempo = timestamp();
-
-  *tempo = timestamp() - *tempo;
-}
-
-/**
- * Devolve matriz M⁻¹
- *
- */
-void geraPreCond(real_t *D, real_t *L, real_t *U, real_t w, int n, int k,
-                 real_t **M, rtime_t *tempo)
-{
-  *tempo = timestamp();
-
-  *tempo = timestamp() - *tempo;
-}
-
-real_t calcResiduoSL(real_t *A, real_t *b, real_t *X,
-                     int n, int k, rtime_t *tempo)
-{
-  *tempo = timestamp();
-
-  real_t *r = calloc(n, sizeof(real_t));
-
-  *tempo = timestamp() - *tempo;
-}
