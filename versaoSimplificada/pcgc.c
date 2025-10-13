@@ -54,14 +54,22 @@
  
      /* y é necessário para qualquer PC (armazenar M^{-1} r) */
      contexto->y = (real_t *)calloc((size_t)n, sizeof(real_t));
-     if (!contexto->y) { pcg_free(contexto); return -1; }
+     if (!contexto->y) 
+     { 
+        pcg_free(contexto);
+        return -1; 
+     }
  
      if (M == PCG_PRECOND_JACOBI)
      {
          /* Jacobi: precisamos de D e invD */
          contexto->D    = (real_t *)malloc((size_t)n * sizeof(real_t));
          contexto->invD = (real_t *)malloc((size_t)n * sizeof(real_t));
-         if (!contexto->D || !contexto->invD) { pcg_free(contexto); return -2; }
+         if (!contexto->D || !contexto->invD) 
+         { 
+            pcg_free(contexto); 
+            return -2; 
+         }
  
          if (extrai_diag_e_invD(A, n, k, contexto->D, contexto->invD, 1e-30) != 0) {
              fprintf(stderr, "[pcg] Jacobi inviavel: diagonal nula/pequena\n");
@@ -74,7 +82,11 @@
      /* SGS/SSOR: precisamos de t e u (workspaces para as duas varreduras) */
      contexto->t = (real_t *)calloc((size_t)n, sizeof(real_t));
      contexto->u = (real_t *)calloc((size_t)n, sizeof(real_t));
-     if (!contexto->t || !contexto->u) { pcg_free(contexto); return -4; }
+     if (!contexto->t || !contexto->u) 
+     { 
+        pcg_free(contexto);
+        return -4; 
+     }
  
      return 0;
  }
@@ -167,7 +179,8 @@
      }
  
      /* Se o chamador pediu a norma, inicializa (sem atualização ainda) */
-     if (norma_delta_x_inf_out) *norma_delta_x_inf_out = NAN;
+     if (norma_delta_x_inf_out) 
+        *norma_delta_x_inf_out = NAN;
      real_t dx_last = NAN; /* guardaremos a ÚLTIMA ||Δx||∞ medida */
  
      /* ---------- (PREP) Setup genérico do pré-condicionador ---------- */
@@ -245,7 +258,8 @@
              real_t dx_i = s * v[i];
              x[i] += dx_i;
              real_t adx = fabs(dx_i);
-             if (adx > dx_max) dx_max = adx;
+             if (adx > dx_max) 
+                dx_max = adx;
          }
          dx_last = dx_max; /* guarda a ÚLTIMA norma Δx∞ medida */
  

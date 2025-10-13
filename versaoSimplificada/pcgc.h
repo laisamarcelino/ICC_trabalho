@@ -16,7 +16,7 @@
 
 typedef enum { /* enum define um conjunto de valores inteiros nomeados (nativo do C) */
   PCG_PRECOND_NONE = 0,
-  PCG_PRECOND_JACOBI,
+  PCG_PRECOND_JACOBI, /* Jacobi (ω=0)*/
   PCG_PRECOND_SGS,   /* Gauss-Seidel (ω=1) */
   PCG_PRECOND_SSOR   /* SSOR (0<ω<2) */
 } pcg_precond_t;      /* Tipo do pré-condicionador */
