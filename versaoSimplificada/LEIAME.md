@@ -46,15 +46,20 @@ Programa principal para leitura de parâmetros, montagem do sistema, chamada do 
 
 ### 4. sislin.h / sislin.c
 
-Módulo para geração de sistemas lineares, manipulação de matrizes e vetores.
+Módulo responsável pela geração e manipulação dos sistemas lineares k-diagonais e pela transformação para sistemas simétricos definidos positivos (SPD).
 
-- Fornecidos no enunciado do trabalho.
+- criaKDiagonal: Gera uma matriz k-diagonal e o vetor de termos independentes.
+- genSimetricaPositiva: Transforma o sistema original em um sistema simétrico definido positivo (AᵗA, Aᵗb).
+- generateRandomA: Função interna que gera os coeficientes dos elementos da matriz k-diagonal.
+- generateRandomB: Função interna que gera os termos independentes do sistema linear.
 
 ### 5. utils.h / utils.c
 
-Utilitários para medição de tempo e marcadores para LIKWID.
+Funções utilitárias para medição de tempo e manipulação de strings.
 
-- Fornecidos no enunciado do trabalho.
+- timestamp: Retorna o tempo atual em milissegundos, útil para medir tempos de execução de trechos do código.
+- markerName: Gera uma string em um formato específico, útil para marcadores de ferramentas como LIKWID.
+- Essas funções foram fornecidas no enunciado do trabalho.
 
 ## Observações
 
