@@ -86,10 +86,10 @@ int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
   vec_copy(p, r, n);
 
   // Calcula o produto interno do resíduo com ele mesmo.
-  // Isso mete o tamanho do erro, e indica o quão longe (passo) está a solução atual (xk) da exata
+  // Isso mede o tamanho do erro, e indica o quão longe (passo) está a solução atual (xk) da exata
   // Sem esse rho, não conseguimos criar as outras direções conjugadas
   real_t rho = dot(r, r, n);
-  // Se rho for muito pequeno, x0 já satisfaz Ax=b então método nem precisa iterar
+  // Se rho for muito pequeno, x0 já satisfaz Ax=b então o método nem precisa iterar
   if (rho <= DBL_EPSILON) {
     if (t_iter) 
       *t_iter = 0.0;
@@ -161,7 +161,7 @@ int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
       return -1;
     }
 
-    // Cálcula o escalar da nova direção de busca (β)
+    // Calcula o escalar da nova direção de busca (β)
     real_t beta = rho_new / rho;
 
     // A nova direção é a combinação do novo resíduo com a direção de busca anterior pk * β_k
@@ -173,7 +173,7 @@ int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
     rho = rho_new;
   }
 
-  // Cálculo do tempo métdio por iteração
+  // Cálculo do tempo médio por iteração
   t_loop = timestamp() - t_loop;
   if (t_iter) {
     if (it > 0)
