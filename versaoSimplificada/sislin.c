@@ -24,7 +24,7 @@ static inline real_t generateRandomB(unsigned int k)
   return (real_t)(k << 2) * (real_t)random() * invRandMax;
 }
 
-/* Cria matriz 'A' k-diagonal e Termos independentes B */
+// Cria matriz A k-diagonal e Termos independentes B
 void criaKDiagonal(int n, int k, real_t **A, real_t **B)
 {
   *A = (real_t *)calloc((size_t)n * (size_t)n, sizeof(real_t));
@@ -35,7 +35,8 @@ void criaKDiagonal(int n, int k, real_t **A, real_t **B)
     exit(2);
   }
 
-  int p = k / 2; // nº de diagonais abaixo/acima da principal
+  // nº de diagonais abaixo/acima da principal
+  int p = k / 2;
 
   for (int i = 0; i < n; i++)
   {
@@ -51,7 +52,7 @@ void criaKDiagonal(int n, int k, real_t **A, real_t **B)
   }
 }
 
-/* Gera matriz simetrica positiva */
+// Gera matriz simetrica positiva
 void genSimetricaPositiva(real_t *A, real_t *b, int n, int k,
                           real_t **ASP, real_t *bsp, rtime_t *tempo)
 {

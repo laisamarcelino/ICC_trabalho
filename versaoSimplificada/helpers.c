@@ -43,14 +43,13 @@ void vet_axpy(int n, real_t alpha, const real_t *x, real_t *y)
 // Multiplica todo o vetor x pelo escalar alpha (escala o vetor)
 void vet_escala(int n, real_t alpha, real_t *x)
 {
-    /* x <- alpha*x */
     for (int i = 0; i < n; ++i)
         x[i] *= alpha;
 }
 
 /* ---------- Matriz densa ---------- */
 
-/* Multiplica matriz densa A (n×n) por vetor x: y = A*x */
+// Multiplica matriz densa A (n×n) por vetor x: y = A*x 
 void matvet_densa(const real_t *A, const real_t *x, real_t *y, int n)
 {
     for (int i = 0; i < n; ++i)
@@ -65,23 +64,23 @@ void matvet_densa(const real_t *A, const real_t *x, real_t *y, int n)
 
 /* ---------- PC de Jacobi ---------- */
 
-/* Extrai diagonal e seu inverso (checando zeros) */
+// Extrai diagonal e seu inverso (checando zeros) 
 int extrai_diag_e_invD(const real_t *A, int n, int k, real_t *D,
                        real_t *invD, real_t eps)
 {
-    (void)k; /* não é necessário para extrair a diagonal */
+    (void)k;
     for (int i = 0; i < n; ++i)
     {
         real_t d = A[IDX(i, i, n)];
         D[i] = d;
         if (fabs(d) < eps)
-            return 1; /* diagonal problemática */
+            return 1;
         invD[i] = 1.0 / d;
     }
     return 0;
 }
 
-/* Aplica Jacobi: y = D^{-1} r */
+// Aplica Jacobi: y = D⁻¹ r 
 void aplica_jacobi(int n, const real_t *invD, const real_t *r, real_t *y)
 {
     for (int i = 0; i < n; ++i)
@@ -94,8 +93,6 @@ void forward_sweep_DL(const real_t *A, int n, int k,
                       real_t diagScale,
                       const real_t *rhs, real_t *t)
 {
-    /* Resolve (D*diagScale + L) t = rhs via varredura forward.
-       Na prática: cada t[i] depende de t[0..i-1]. */
     const int p = k / 2;
     for (int i = 0; i < n; ++i)
     {
@@ -103,7 +100,7 @@ void forward_sweep_DL(const real_t *A, int n, int k,
         int j0 = (i - p > 0) ? (i - p) : 0;
         for (int j = j0; j < i; ++j)
         {
-            s -= A[IDX(i, j, n)] * t[j]; /* subtrai L*t */
+            s -= A[IDX(i, j, n)] * t[j]; // subtrai L*t 
         }
         real_t ddiag = diagScale * A[IDX(i, i, n)];
         t[i] = s / ddiag;
@@ -114,8 +111,6 @@ void backward_sweep_DU(const real_t *A, int n, int k,
                        real_t diagScale,
                        const real_t *rhs, real_t *y)
 {
-    /* Resolve (D*diagScale + U) y = rhs via varredura backward.
-       Cada y[i] depende de y[i+1..n-1]. */
     const int p = k / 2;
     for (int ii = 0; ii < n; ++ii)
     {
@@ -124,7 +119,7 @@ void backward_sweep_DU(const real_t *A, int n, int k,
         int j1 = (i + p < n - 1) ? (i + p) : (n - 1);
         for (int j = i + 1; j <= j1; ++j)
         {
-            s -= A[IDX(i, j, n)] * y[j]; /* subtrai U*y */
+            s -= A[IDX(i, j, n)] * y[j]; // subtrai U*y 
         }
         real_t ddiag = diagScale * A[IDX(i, i, n)];
         y[i] = s / ddiag;

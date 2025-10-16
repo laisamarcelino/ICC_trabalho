@@ -1,28 +1,11 @@
-/* Método dos Gradientes Conjugados (CG “puro” + PCG Jacobi/GS/SSOR)
- *
- * Esta função segue fielmente o Algoritmo 3.5 do material do professor.
- * Cada bloco do código indica, em comentários, a(s) linha(s) do pseudocódigo.
- *
- * Mantém o mapeamento para o Algoritmo 3.5 (comentários [linha X]).
- * Diferenças do PCG (Alg. 3.6) estão marcadas como:  // PCG: ...
- *
- * Critério de parada exigido no trabalho:
- *   ||Δx||_∞ = max_i |x_i^(k+1) - x_i^(k)| < eps_inf
- *
- * Requisitos:
- *   - A é uma matriz n×n simétrica definida positiva (SPD), k-diagonal.
- *   - b é o vetor de termos independentes.
- *   - x chega como vetor de saída (pode ser zerado aqui).
- *
- * Dependências:
- *   - helpers.h: vet_produto, vet_axpy, vet_copy, vet_norma2, matvet_densa etc.
- *   - sislin.h: define real_t e o macro IDX(i,j,n) usado em helpers.c.
- */
+// Método dos Gradientes Conjugados
 
-#include <string.h> /* memset */
-#include <math.h>   /* sqrt, fabs */
-#include <stdlib.h> /* calloc, free */
-#include <stdio.h>  /* fprintf */
+// Observação: A aplicação do método é inspirada no Algoritmo 3.5 do material do professor.
+
+#include <string.h>
+#include <math.h> 
+#include <stdlib.h>
+#include <stdio.h>
 #include "pcgc.h"
 
 /* ------------------------ Setup do pré-condicionador ------------------------ */
@@ -287,7 +270,7 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
         // [linha 6]  r = r − s z  (AXPY com alfa = -s)
         vet_axpy(n, -s, z, r);
 
-        // *** Critério do TRABALHO ***: ||Δx||_∞ < eps
+        // Critério do TRABALHO: ||Δx||_∞ < eps
         if (dx_max < eps_inf)
         {
             if (norma_delta_x_inf_out)
@@ -300,13 +283,13 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
         }
 
         /* [linha 7]–[linha 11]
-           Algoritmo 3.5 (CG “puro”) vs PCG (Jacobi/GS/SSOR):
+           Algoritmo 3.5 (CG “puro”) x PCG (Jacobi/GS/SSOR):
            - NONE:
              [7]  aux1 = r^T r
              [10] m = aux1/aux; aux = aux1
              [11] v = r + m v
            - PCG:
-             [7]  y = M^{-1} r
+             [7]  y = M⁻¹ r
              [8]  aux1 = r^T y
              [10] m = aux1/aux; aux = aux1
              [11] v = y + m v
@@ -321,7 +304,7 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
         }
         else
         {
-            pcg_apply(A, n, k, &pc, r, pc.y);                        // [linha 7]  y = M^{-1} r
+            pcg_apply(A, n, k, &pc, r, pc.y);                        // [linha 7]  y = M⁻¹ r
             real_t aux1 = vet_produto(n, r, pc.y);                   // [linha 8]  aux1 = r^T y
             real_t m = aux1 / (fabs(aux) < eps_den ? eps_den : aux); // [10]
             aux = aux1;                                              //     

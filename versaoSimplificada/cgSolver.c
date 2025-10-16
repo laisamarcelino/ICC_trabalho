@@ -5,7 +5,7 @@
 #include "pcgc.h"
 #include "utils.h"
 
-/* Utilitário: calcula ||r||2 com r = b - A x (usando A densa n×n) */
+// Utilitário: calcula ||r||2 com r = b - A x (usando A densa n×n)
 static real_t residuo_l2(const real_t *A, const real_t *b, const real_t *x, int n)
 {
     real_t *Ax = (real_t *)calloc((size_t)n, sizeof(real_t));
@@ -22,34 +22,34 @@ static real_t residuo_l2(const real_t *A, const real_t *b, const real_t *x, int 
     return sqrt(s2);
 }
 
-/* Mapeia ω lido em M (tipo de PCG) e normaliza omega_out se necessário */
+// Mapeia ω lido em M (tipo de PCG) e normaliza omega_out se necessário
 static int escolhe_precond(real_t w_in, pcg_precond_t *M_out, real_t *omega_out)
 {
     if (w_in == -1.0)
-    { /* sem pré-condicionador */
+    { // sem pré-condicionador 
         *M_out = PCG_PRECOND_NONE;
         *omega_out = 0.0;
         return 0;
     }
     if (w_in == 0.0)
-    { /* Jacobi */
+    { // Jacobi 
         *M_out = PCG_PRECOND_JACOBI;
         *omega_out = 0.0;
         return 0;
     }
     if (w_in == 1.0)
-    { /* Gauss-Seidel */
+    { // Gauss-Seidel 
         *M_out = PCG_PRECOND_SGS;
         *omega_out = 1.0;
         return 0;
     }
     if (w_in > 1.0 && w_in < 2.0)
-    { /* SSOR */
+    { // SSOR 
         *M_out = PCG_PRECOND_SSOR;
-        *omega_out = w_in; /* manter ω (0<ω<2) */
+        *omega_out = w_in; // manter ω (0<ω<2)
         return 0;
     }
-    return -1; /* inválido */
+    return -1; // inválido
 }
 
 int main(void)
@@ -102,14 +102,9 @@ int main(void)
 
     /* ----------------- Gerar sistema k-diagonal A, b ----------------- */
     real_t *A = NULL, *b = NULL;
-    criaKDiagonal(n, k, &A, &b); /* pode abortar por falta de memória */
+    criaKDiagonal(n, k, &A, &b);
 
-    /* ----------------- Transformar para SPD: ASP = AᵗA, bsp = Aᵗ b ----
-     * O enunciado pede preparar o SL para poder usar CG (SPD).
-     * O módulo sislin.c já mede esse tempo em 't_spd'.
-     * Aqui somaremos este tempo ao "tempo_pc", pois a especificação define
-     * "tempo_pc = preparar SL + pré-condicionador".
-     */
+    /* ----------------- Transformar para SPD: ASP = AᵗA, bsp = Aᵗ b ----------------- */
     real_t *ASP = NULL;
     real_t *bsp = (real_t *)calloc((size_t)n, sizeof(real_t));
     if (!bsp)
@@ -122,7 +117,7 @@ int main(void)
     rtime_t t_spd = 0.0;
     genSimetricaPositiva(A, b, n, k, &ASP, bsp, &t_spd);
 
-    /* ----------------- Medir tempo do setup do pré-condicionador ----- */
+    /* ----------------- Medir tempo do setup do pré-condicionador ----------------- */
     rtime_t t_pc_setup = 0.0;
     {
         pcg_contexto_t tmp = {0};
@@ -139,10 +134,10 @@ int main(void)
             free(bsp);
             return 1;
         }
-        pcg_free(&tmp); /* liberamos: foi somente para medir o tempo */
+        pcg_free(&tmp);
     }
 
-    /* ----------------- Resolver por CG/PCG (mede tempo total solve) -- */
+    /* ----------------- Resolver por CG/PCG (mede tempo total solve) ----------------- */
     real_t *x = (real_t *)calloc((size_t)n, sizeof(real_t));
     if (!x)
     {
@@ -156,11 +151,11 @@ int main(void)
 
     rtime_t t_solve = 0.0;
     int iters = -1;
-    real_t norma_delta_x_inf = NAN; /* <<< vai receber ||Δx||_∞ da última iteração */
+    real_t norma_delta_x_inf = NAN; // Recebe ||Δx||_∞ da última iteração
     {
         rtime_t t0 = timestamp();
         iters = cg_solve(ASP, bsp, x, n, k, maxit, eps, M, omega,
-                         &norma_delta_x_inf); /* <<< novo parâmetro */
+                         &norma_delta_x_inf);
         t_solve = timestamp() - t0;
     }
 
@@ -189,7 +184,6 @@ int main(void)
     rtime_t tempo_iter = 0.0;
     if (iters > 0)
     {
-        /* subtraímos o setup externo medido para aproximar o custo por iteração */
         rtime_t iter_total_aprox = t_solve - t_pc_setup;
         if (iter_total_aprox < 0.0)
             iter_total_aprox = 0.0;
@@ -197,29 +191,29 @@ int main(void)
     }
 
     /* ----------------- Saída no formato do enunciado ----------------- */
-    /* Linha 1: n */
+    // Linha 1: n
     printf("%d\n", n);
 
-    /* Linha 2: x_1 x_2 ... x_n (com precisão pedida) */
+    // Linha 2: x_1 x_2 ... x_n (com precisão pedida)
     for (int i = 0; i < n; ++i)
         printf("%.16g%s", x[i], (i + 1 < n ? " " : "\n"));
 
-    /* Linha 3: norma (||Δx||_∞ na última iteração) — agora valor EXATO devolvido pelo solver */
+    // Linha 3: norma (||Δx||_∞ na última iteração) — agora valor EXATO devolvido pelo solver
     printf("%.8g\n", norma_delta_x_inf);
 
-    /* Linha 4: residuo = ||r||2 = ||b - A x||2 */
+    // Linha 4: residuo = ||r||2 = ||b - A x||2
     printf("%.8g\n", res_norm);
 
-    /* Linha 5: tempo_pc (ms) = preparar SL + setup PC */
+    // Linha 5: tempo_pc (ms) = preparar SL + setup PC
     printf("%.8g\n", tempo_pc);
 
-    /* Linha 6: tempo_iter (ms) = tempo médio por iteração (aprox) */
+    // Linha 6: tempo_iter (ms) = tempo médio por iteração (aprox)
     printf("%.8g\n", tempo_iter);
 
-    /* Linha 7: tempo_residuo (ms) */
+    // Linha 7: tempo_residuo (ms)
     printf("%.8g\n", t_res);
 
-    /* Limpeza */
+    // Liberação de memória
     free(A);
     free(b);
     free(ASP);

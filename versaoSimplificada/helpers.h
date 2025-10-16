@@ -22,23 +22,19 @@ void   vet_escala(int n, real_t alpha, real_t *x);
 
 /* ---------- Mat-vec (densa) ---------- */
 
-/* Multiplica matriz densa A (n×n) por vetor x: y = A*x */
+// Multiplica matriz densa A (n×n) por vetor x: y = A*x
 void matvet_densa(const real_t *A, const real_t *x, real_t *y, int n);
 
 /* ---------- Pré-condicionador de Jacobi ---------- */
 
-/* Extrai diagonal e seu inverso (checando zeros).
-   Retorna 0 se OK; !=0 se diagonal ~0. */
+// Extrai diagonal e seu inverso (checando zeros)
 int  extrai_diag_e_invD(const real_t *A, int n, int k, real_t *D, real_t *invD, real_t eps);
 
-/* Aplica Jacobi: y = D^{-1} r */
+// Aplica Jacobi: y = D⁻¹ r
 void aplica_jacobi(int n, const real_t *invD, const real_t *r, real_t *y);
 
-/* ---------- Varreduras para SGS/SSOR (sem formar L/U) ----------
-   Nossas rotinas resolvem sistemas do tipo (D*diagScale + L) t = rhs   e
-   (D*diagScale + U) y = rhs, usando apenas a banda k-diagonal.
-
-   Mapeamento dos casos:
+/* ---------- Varreduras para SGS/SSOR ---------- */
+/*   Mapeamento dos casos:
    - Gauss-Seidel (ω=1): diagScale = 1.0  -> (D + L) e (D + U)
    - SSOR (0<ω<2):      diagScale = 1/ω  -> (D/ω + L) e (D/ω + U)
 */
@@ -50,4 +46,4 @@ void backward_sweep_DU(const real_t *A, int n, int k,
                        real_t diagScale,
                        const real_t *rhs, real_t *y);
 
-#endif /* HELPERS_H */
+#endif // __HELPERS_H__
