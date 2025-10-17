@@ -1,6 +1,8 @@
-// Método dos Gradientes Conjugados
-
-// Observação: A aplicação do método é inspirada no Algoritmo 3.5 do material do professor.
+/* Método dos Gradientes Conjugados
+ 
+Observação: A aplicação do método é inspirada no Algoritmo 3.5 do livro:
+ CUNHA, M.CRISTINA; Métodos Numéricos, 2002, Ed. UNICAMP, Cap. 3, seções 3.3, 3.4 e 3.5
+*/
 
 #include <string.h>
 #include <math.h> 
@@ -19,7 +21,7 @@ int pcg_setup(const real_t *A, int n, int k, pcg_precond_t M, real_t omega, pcg_
     // SGS: força ω=1.0
     // SSOR: exige 0<ω<2 (do enunciado e teoria)
     
-     // Se é Gauss-Seidel, é forçado ω = 1.0
+    // Se é Gauss-Seidel, é forçado ω = 1.0
     if (M == PCG_PRECOND_SGS)
     {
         contexto->omega = 1.0;
@@ -53,7 +55,7 @@ int pcg_setup(const real_t *A, int n, int k, pcg_precond_t M, real_t omega, pcg_
         return -1;
     }
 
-    // Se for PC de Jacobi, precisamos extrar a diagonal principal e sua inversa
+    // Se for PC de Jacobi, precisamos extrair a diagonal principal e sua inversa
     if (M == PCG_PRECOND_JACOBI)
     {
         contexto->D = (real_t *)malloc((size_t)n * sizeof(real_t));
@@ -103,39 +105,39 @@ void pcg_apply(const real_t *A, int n, int k, const pcg_contexto_t *contexto, co
         break;
     
     // Nos dois métodos abaixo, não transformamos M explicitamente
-    // Caso for GS, faz forward e backward sweep:
+    // Caso for GS, faz varreduras progressiva e regressiva:
     // (D + L) t = r
     // u = D t
     // (D + U) y = D t
 
-    // Caso for SSOR, faz forward e backward sweep (M_ω = (D + ωL) D⁻¹ (D + ωU)):
+    // Caso for SSOR, faz varreduras progressiva e regressiva (M_ω = (D + ωL) D⁻¹ (D + ωU)):
     // (D/ω + L) t = r 
     // u = D t
     // (D/ω + U) y = u
 
     // Os métodos são semelhantes, o que muda é o peso da diagonal D nas etapas de sweep
-    // Para GS, diagScale = 1.0
-    // Para SSOR, diagScale = 1/ω
+    // Para GS, escala_diag = 1.0
+    // Para SSOR, escala_diag = 1/ω
     case PCG_PRECOND_SGS:
     case PCG_PRECOND_SSOR:
     {
-        // Se for GS, mantém diagScale = 1.0
-        real_t diagScale = 1.0;
-        // Se for SSOR, diagScale = 1/ω
+        // Se for GS, mantém escala_diag = 1.0
+        real_t escala_diag = 1.0;
+        // Se for SSOR, escala_diag = 1/ω
         if (contexto->type == PCG_PRECOND_SSOR)
         {
-            diagScale = 1.0 / contexto->omega;
+            escala_diag = 1.0 / contexto->omega;
         }
 
-        // (D*diagScale + L) t = r
-        forward_sweep_DL(A, n, k, diagScale, r, contexto->t);
+        // (D*escala_diag + L) t = r
+        varredura_progressiva_DL(A, n, k, escala_diag, r, contexto->t);
 
         // u = D t
         for (int i = 0; i < n; ++i)
             contexto->u[i] = A[IDX(i, i, n)] * contexto->t[i];
 
-        // (D*diagScale + U) y = u
-        backward_sweep_DU(A, n, k, diagScale, contexto->u, y);
+        // (D*escala_diag + U) y = u
+        varredura_regressiva_DU(A, n, k, escala_diag, contexto->u, y);
         break;
     }
 
@@ -255,7 +257,7 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
         real_t s = aux / vTz;
 
         // [linha 5]  x^(k+1) = x^(k) + s v
-        // (e computa ||Δx||_∞ = max_i |s*v[i]| para o critério do TRABALHO)
+        // (e computa ||Δx||_∞ = max_i |s*v[i]|)
         real_t dx_max = 0.0;
         for (int i = 0; i < n; ++i)
         {
@@ -270,7 +272,7 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
         // [linha 6]  r = r − s z  (AXPY com alfa = -s)
         vet_axpy(n, -s, z, r);
 
-        // Critério do TRABALHO: ||Δx||_∞ < eps
+        // ||Δx||_∞ < eps
         if (dx_max < eps_inf)
         {
             if (norma_delta_x_inf_out)
@@ -298,7 +300,7 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
         {
             real_t aux1 = vet_produto(n, r, r);                      // [linha 7]  aux1 = r^T r
             real_t m = aux1 / (fabs(aux) < eps_den ? eps_den : aux); // [10]
-            aux = aux1;                                              //     
+            aux = aux1;                                                   
             for (int i = 0; i < n; ++i)                              // [11]
                 v[i] = r[i] + m * v[i];
         }
@@ -307,7 +309,7 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
             pcg_apply(A, n, k, &pc, r, pc.y);                        // [linha 7]  y = M⁻¹ r
             real_t aux1 = vet_produto(n, r, pc.y);                   // [linha 8]  aux1 = r^T y
             real_t m = aux1 / (fabs(aux) < eps_den ? eps_den : aux); // [10]
-            aux = aux1;                                              //     
+            aux = aux1;                                                  
             for (int i = 0; i < n; ++i)                              // [11]
                 v[i] = pc.y[i] + m * v[i];
         }
@@ -316,9 +318,11 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
     // atingiu limite de iterações sem satisfazer ||Δx||_∞
     if (norma_delta_x_inf_out)
         *norma_delta_x_inf_out = dx_last; // reporta a última norma medida
+
     pcg_free(&pc);
     free(r);
     free(v);
     free(z);
+
     return maxit;
 }
