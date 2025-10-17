@@ -32,7 +32,7 @@ typedef struct {
   real_t *D, *invD;    // diagonal e seu inverso
 
   // GS/SSOR
-  real_t *t, *u;       // workspaces para as duas varreduras (forward/backward)
+  real_t *t, *u;       // workspaces para as duas varreduras (progressiva e regresiva)
 } pcg_contexto_t;
 
 // Setup/Apply/Free do pré-condicionador
