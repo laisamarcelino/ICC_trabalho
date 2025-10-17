@@ -44,4 +44,7 @@ void varredura_progressiva_DL(const real_t *A, int n, int k,
 void varredura_regressiva_DU(const real_t *A, int n, int k,
                              real_t escala_diag, const real_t *vet_dir, real_t *y);
 
+/* ---------- Cálculo do resíduo em norma L2 ---------- */
+real_t residuo_l2(const real_t *A, const real_t *b, const real_t *x, int n);
+
 #endif // __HELPERS_H__

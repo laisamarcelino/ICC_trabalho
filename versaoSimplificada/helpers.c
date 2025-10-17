@@ -126,3 +126,20 @@ void varredura_regressiva_DU(const real_t *A, int n, int k,
         y[i] = s / ddiag;
     }
 }
+
+// Calcula ||r||2 com r = b - A x (usando A densa n×n)
+real_t residuo_l2(const real_t *A, const real_t *b, const real_t *x, int n)
+{
+    real_t *Ax = (real_t *)calloc((size_t)n, sizeof(real_t));
+    if (!Ax)
+        return NAN;
+    matvet_densa(A, x, Ax, n); /* Ax */
+    real_t s2 = 0.0;
+    for (int i = 0; i < n; ++i)
+    {
+        real_t ri = b[i] - Ax[i];
+        s2 += ri * ri;
+    }
+    free(Ax);
+    return sqrt(s2);
+}
