@@ -65,3 +65,9 @@ Funções utilitárias para medição de tempo e manipulação de strings.
 
 - Cada função está documentada com comentários no código-fonte, explicando seu propósito, parâmetros e funcionamento.
 - O projeto segue as recomendações do enunciado e a preparação do sistema para garantir simetria e definição positiva.
+
+## Referências Teóricas
+
+- CUNHA, M.CRISTINA; Métodos Numéricos, 2002, Ed. UNICAMP, Cap. 3, seções 3.3, 3.4 e 3.5.
+
+- CARVALHO, Rafael Aleixo de; VIEIRA, Felipe. Métodos Iterativos para Problemas de Quadrados Mínimos Lineares. São Carlos: Sociedade Brasileira de Matemática Aplicada e Computacional (SBMAC), 2022. 200 p. (Notas em Matemática Aplicada, v. 93). ISBN 978-65-86388-09-1.

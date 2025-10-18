@@ -87,6 +87,7 @@ void aplica_jacobi(int n, const real_t *invD, const real_t *r, real_t *y)
 }
 
 /* ---------- Varreduras para SGS/SSOR ---------- */
+// Baseados em (CARVALHO, VIEIRA, 2022)
 
 // Resolve o sistema triangular inferior na forma (D*escala_diag + L) * y = vet_dir
 void varredura_progressiva_DL(const real_t *A, int n, int k,
@@ -126,6 +127,8 @@ void varredura_regressiva_DU(const real_t *A, int n, int k,
         y[i] = s / ddiag;
     }
 }
+
+/* ---------- Calculo do Resíduo ---------- */
 
 // Calcula ||r||2 com r = b - A x (usando A densa n×n)
 real_t residuo_l2(const real_t *A, const real_t *b, const real_t *x, int n)

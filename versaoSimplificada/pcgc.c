@@ -1,8 +1,4 @@
-/* Método dos Gradientes Conjugados
- 
-Observação: A aplicação do método é inspirada no Algoritmo 3.5 do livro:
- CUNHA, M.CRISTINA; Métodos Numéricos, 2002, Ed. UNICAMP, Cap. 3, seções 3.3, 3.4 e 3.5
-*/
+/* Método dos Gradientes Conjugados */
 
 #include <string.h>
 #include <math.h> 
@@ -161,6 +157,7 @@ void pcg_free(pcg_contexto_t *contexto)
 
 /* ------------------------ Solver CG/PCG unificado --------------------------- */
 
+// Baseado em CUNHA (2002)
 int cg_solve(const real_t *A, const real_t *b, real_t *x,
              int n, int k, int maxit, real_t eps_inf,
              pcg_precond_t M, real_t omega,
