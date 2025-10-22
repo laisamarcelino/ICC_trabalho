@@ -1,84 +1,48 @@
-#ifndef __PCGC_H__
-#define __PCGC_H__
+#ifndef __PCG_H__
+#define __PCG_H__
 
-#include "utils.h"   // real_t, rtime_t
 #include <stddef.h>
+#include "sislin.h"
+#include "helpers.h"
+#include "utils.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/* PCG -> Gradientes Conjugados Pré-Condicionados
+ * Este header define:
+ *  - o enum com os tipos de pré-condicionador (NONE/JACOBI/SGS/SSOR)
+ *  - o “contexto” do PC (buffers e parâmetros)
+ *  - as funções de setup/apply/free do PC
+ *  - o solver unificado (CG puro + PCG) com ω (para GS/SSOR)
+ */
 
-// CG sem pré-condicionador (ω = -1 → M = I)
-// Entradas:
-//   A  : matriz SPD (linearizada, n×n) — use a ASP = AᵗA
-//   b  : vetor termo independente — use bsp = Aᵗb
-//   x  : solução (saída); será escrito a partir de x0 = 0
-//   n  : dimensão
-//   maxit : máx. iterações
-//   eps: tolerância no critério ||x^k - x^{k-1}||_inf < eps
-// Saídas medição:
-//   t_iter: tempo MÉDIO por iteração (ms)
-//   t_res : tempo do cálculo do resíduo final (ms)
-//   res_norm_out: ||b - A x_final||_2 (opcional; pode ser NULL)
-// Retorno: número de iterações realizadas (>0), ou
-//          0 se já convergiu em x0, ou
-//         -1 em quebra numérica / denom <= 0 / NaN etc.
-int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
-               int n, int maxit, real_t eps,
-               rtime_t *t_iter, rtime_t *t_res,
-               real_t *res_norm_out);
+typedef enum {
+  PCG_PRECOND_NONE = 0,
+  PCG_PRECOND_JACOBI, // Jacobi (ω=0)
+  PCG_PRECOND_SGS,   // Gauss-Seidel (ω=1) 
+  PCG_PRECOND_SSOR   // SSOR (0<ω<2) 
+} pcg_precond_t;      // Tipo do pré-condicionador 
 
-// CG com pré-condicionador de Jacobi (ω = 0.0 → M = D)
-// Onde D é a matriz diagonal de A
-// A: matriz SPD (simétrica positiva definida) n×n linearizada
-// b: vetor termo independente de tamanho n
-// x: vetor solução (saída) de tamanho n, inicializado em x0 = 0
-// n: dimensão do sistema
-// maxit: número máximo de iterações
-// eps: tolerância para critério de parada ||x_new - x_old||_inf < eps
-// t_iter: tempo médio por iteração (saída, em ms)
-// t_res: tempo do cálculo do resíduo final (saída, em ms)
-// res_norm_out: norma do resíduo final ||b - Ax||_2 (saída, opcional)
-int cg_jacobi_prec(const real_t *A, const real_t *b, real_t *x,
-                   int n, int maxit, real_t eps,
-                   rtime_t *t_iter, rtime_t *t_res,
-                   real_t *res_norm_out);
+typedef struct {
+  pcg_precond_t type;  // qual PC foi escolhido
+  real_t omega;        // GS=1.0; SSOR=ω (0<ω<2)
 
-// CG com pré-condicionador de Gauss-Seidel (ω = 1.0 → M = L + D)
-// Onde L é a matriz triangular inferior de A
-// A: matriz SPD (simétrica positiva definida) n×n linearizada
-// b: vetor termo independente de tamanho n
-// x: vetor solução (saída) de tamanho n, inicializado em x0 = 0
-// n: dimensão do sistema
-// maxit: número máximo de iterações
-// eps: tolerância para critério de parada ||x_new - x_old||_inf < eps
-// t_iter: tempo médio por iteração (saída, em ms)
-// t_res: tempo do cálculo do resíduo final (saída, em ms)
-// res_norm_out: norma do resíduo final ||b - Ax||_2 (saída, opcional)
-int cg_gs_prec(const real_t *A, const real_t *b, real_t *x,
-               int n, int maxit, real_t eps,
-               rtime_t *t_iter, rtime_t *t_res,
-               real_t *res_norm_out);
+  // Buffers de trabalho compartilhados
+  real_t *y;           // y = M⁻¹ r (sempre que M != NONE)
 
-// CG com pré-condicionador SSOR (Simultaneous Successive Over-Relaxation)
-// ω = 1.0 → M = L + D (Gauss-Seidel) + U
-// Onde L é a matriz triangular inferior de A, e U é a triangular superior
-// A: matriz SPD (simétrica positiva definida) n×n linearizada
-// b: vetor termo independente de tamanho n
-// x: vetor solução (saída) de tamanho n, inicializado em x0 = 0
-// n: dimensão do sistema
-// maxit: número máximo de iterações
-// eps: tolerância para critério de parada ||x_new - x_old||_inf < eps
-// omega: fator de relaxação (geralmente entre 1.0 e 2.0)
-// t_iter: tempo médio por iteração (saída, em ms)
-// t_res: tempo do cálculo do resíduo final (saída, em ms)
-// res_norm_out: norma do resíduo final ||b - Ax||_2 (saída, opcional)
-int cg_ssor_prec(const real_t *A, const real_t *b, real_t *x,
-                 int n, int maxit, real_t eps, real_t omega,
-                 rtime_t *t_iter, rtime_t *t_res,
-                 real_t *res_norm_out);
+  // Jacobi
+  real_t *D, *invD;    // diagonal e seu inverso
 
-#ifdef __cplusplus
-}
-#endif
-#endif // __PCGC_H__
+  // GS/SSOR
+  real_t *t, *u;       // workspaces para as duas varreduras (progressiva e regresiva)
+} pcg_contexto_t;
+
+// Setup/Apply/Free do pré-condicionador
+int  pcg_setup(const real_t *A, int n, int k, pcg_precond_t M, real_t omega, pcg_contexto_t *contexto);
+void pcg_apply(const real_t *A, int n, int k, const pcg_contexto_t *contexto, const real_t *r, real_t *y);
+void pcg_free(pcg_contexto_t *contexto);
+
+// Solver unificado (CG puro + PCG)
+int cg_solve(const real_t *A, const real_t *b, real_t *x,
+             int n, int k, int maxit, real_t eps_inf,
+             pcg_precond_t M, real_t omega, real_t *norma_delta_x_inf_out);
+
+#endif // __PCG_H__

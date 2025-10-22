@@ -1,614 +1,325 @@
-#include <stdio.h>
+/* Método dos Gradientes Conjugados */
+
+#include <string.h>
+#include <math.h> 
 #include <stdlib.h>
-#include <math.h>
-#include <float.h>
+#include <stdio.h>
 #include "pcgc.h"
-#include "utils.h"
-#include "helpers.h"
-// ---------- O que é o método dos Gradientes Conjugados (CG) ----------
 
-// O objetivo do método (iterativo) dos Gradientes Conjugados é encontrar x, no qual temos Ax=b 
-// ou seja, conhecemos o valor da matriz A (daremos) e o valor dos coeficientes b (daremos)
+/* ------------------------ Setup do pré-condicionador ------------------------ */
 
-// Objetivo: queremos encontrar x que satisfaz a equação Ax=b.
-
-// Antes de explicar o método, devemos saber que o método só funciona bem se a matriz A
-// for simétrica definida positiva. Simétrica é quando ela é igual sua transposta (A = A^t).
-// Definida positiva é quando o produto zᵗ*A*z > 0.
-
-// z é um vetor qualquer (não nulo) que serve para testar o comportamento da matriz A.
-// A operação zᵗ*(A*z) é um produto interno entre zᵗ e Az, por isso usamos a função auxiliar
-// "dot", que representa o produto interno
-
-// Nós precisamos desse teste (zᵗ*A*z > 0) pois ele garante que A nunca transforma um vetor (não nulo)
-// em uma direção oposta ao próprio vetor, ou seja, que A é "positiva". Isso quer dizer que o algoritmo
-// é numericamente estável e converge.
-
-// Nós usamos esse zᵗ e z pois essa combinação transforma uma matriz em um ÚNICO número escalar.
-// Isso permite ver com mais facilidade as propriedades de A.
-
-// Vou continuar a explicação
-
-// O método dos Gradientes Conjugados é iterativo. O gradiente (erro da iteração atual) dá a 
-// DIREÇÃO em que o erro diminui mais rápido.
-
-// Mas não podemos ir sempre pelo gradiente! Pois ele "faz zig-zag", não dando bons resultados sempre.
-
-// Por isso, precisamos de direções independentes e "bem escolhidas", que são as direções conjugadas (pk)!
-
-// Cada direção pk aponta para um novo caminho e corrige uma parte do erro. Ela é escolhida de modo
-// que não interfere nas correções anteriores (iterações anteriores que vão convergindo para o método)
-
-// ---------- CG sem pré-condicionador (ω = -1) ----------
-
-int cg_no_prec(const real_t *A, const real_t *b, real_t *x,
-               int n, int maxit, real_t eps,
-               rtime_t *t_iter, rtime_t *t_res,
-               real_t *res_norm_out)
+int pcg_setup(const real_t *A, int n, int k, pcg_precond_t M, real_t omega, pcg_contexto_t *contexto)
 {
-  if (!A || !b || !x || n <= 0 || maxit <= 0 || eps < 0.0) {
-    fprintf(stderr, "cg_no_prec: parâmetros inválidos\n");
-    return -1;
-  }
+    // Zera toda a struct para facilitar limpeza em caso de erro
+    memset(contexto, 0, sizeof(*contexto));
+    contexto->type = M;
 
-  // Alocação de vetores auxiliares
-  real_t *r  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *p  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *Ap = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *x_old = (real_t*) malloc((size_t)n * sizeof(real_t));
-  if (!r || !p || !Ap || !x_old) {
-    fprintf(stderr, "cg_no_prec: falha de alocação\n");
-    free(r); free(p); free(Ap); free(x_old);
-    return -1;
-  }
-
-  // Chute inicial do vetor (z, que foi dito acima)
-  vec_set_zero(x, n);
-
-  // Primeiro resíduo que será gerado
-  vec_copy(r, b, n);
-
-  // p0 = r0 (primeira direção da busca - pk, mas como é a primeira é p0 - sem pré-condicionador)
-
-  // Sabemos que o pré-condicionador M é usado para modificar o resíduo: p0 = M⁻¹r0
-
-  // A matriz M é uma aproximação de A que serve para facilitar sua solução. Quando
-  // não temos pré condicionador, é equivalente a dizer que não queremos fazer nenhuma transformação, 
-  // ou seja, temos M = I pois a matriz identidade não altera o resultado quando multiplicamos ela por
-  // um vetor, logo, p0 = I⁻¹r0 -> p0 = r0
-
-  // Lembrando que usando o métodos CG com pré-condicionadores, quer dizer multiplicar uma matriz
-  // M (auxiliar) a um sistema, pra tornar ele mais fácil de resolver. Com a notação M⁻¹Ax = M⁻¹b.
-  
-  // Porém, ao invés de aplicarmos diretamente M⁻¹Ax = M⁻¹b, a teoria nos diz que precisamos aplicar
-  // isso nas etapas de atualização do método, ou seja, nos cálculos de resíduo (rk) e direção (pk)
-  // que é aqui mesmo.
-  vec_copy(p, r, n);
-
-  // Calcula o produto interno do resíduo com ele mesmo.
-  // Isso mede o tamanho do erro, e indica o quão longe (passo) está a solução atual (xk) da exata
-  // Sem esse rho, não conseguimos criar as outras direções conjugadas
-  real_t rho = dot(r, r, n);
-  // Se rho for muito pequeno, x0 já satisfaz Ax=b então o método nem precisa iterar
-  if (rho <= DBL_EPSILON) {
-    if (t_iter) 
-      *t_iter = 0.0;
-
-    if (t_res) {
-      *t_res = timestamp();
-      *t_res = timestamp() - *t_res;
-    }
-    if (res_norm_out) 
-      *res_norm_out = sqrt(rho);
-    free(r); free(p); free(Ap); free(x_old);
-    return 0;
-  }
-
-  int it = 0;
-  rtime_t t_loop = timestamp();
-
-  // Caso contrário, temos o início das iterações
-  // Aqui é o início das iterações do método CG sem pré-condicionadores
-  for (it = 1; it <= maxit; ++it) {
-    // Vamos calcular o tamanho do passo na direção de busca pk
-    // Isso é bom para mover x na direção de busca pk para reduzir o resíduo
-    // matvec_dense é a multiplicação de uma matriz por um vetor
-    // Estou multiplicando a matriz A pelo vetor pk
-    // O resultado é armazenado no vetor Ap
-    matvec_dense(A, p, Ap, n);
-
-    // Aqui estamos medindo a curvatura da função de busca na direção pk
-    // Se o "denominador" for muito peuqueno ou negativo, o passo ak não faria sentido
-    real_t denom = dot(p, Ap, n); // p^T A p
-    if (!(denom > 0.0) || !isfinite(denom)) {
-      fprintf(stderr, "cg_no_prec: breakdown numérico (p^T A p = %g)\n", denom);
-      free(r); free(p); free(Ap); free(x_old);
-      return -1;
-    }
-    // Com esse valor, calculamos o tamanho do passo
-    // Serve para sabermos a quantidade que devemos avançar na direção de pk
-    // ak é o passo e nos diz o quanto devemos andar
-    real_t alpha = rho / denom;
-
-    // x_{k+1} = x_k + alpha p_k
-    // Salvamos o antigo x (para medir a diferença)
-    vec_copy(x_old, x, n);
-    // Aplicamos o passo na direção de pk e geramos um novo x
-    axpy(x, alpha, p, n);
-    // Após isso, nós conseguimos avançar na iteração do método CG.
-    // Caminhamos na "direção de busca ótima"
-
-    // r_{k+1} = r_k - alpha Ap
-    // Aqui, atualizamos o resíduo (diminuindo ele, até que fique pequeno o suficiente para parar)
-    // Resíduo = resíduo - passo * Ap
-    for (int i = 0; i < n; ++i) 
-      r[i] -= alpha * Ap[i];
-
-    // critério do trabalho: ||x_new - x_old||_inf < eps
-    // Aqui está o criério de parada da iteração, que decide se o método já convergiu para a solução
-    // O cálculo dele está na função norm_inf_diff e vamos comparar ela com a tolerância que queremos (eps)
-    real_t aprox_err = norm_inf_diff(x, x_old, n);
-    if (aprox_err < eps) 
-      break;
-
-    // Nós calculamos o novo valor de rho depois de atualizar o resíduo
-    // Isso serve para medir o novo tamanho do erro e usado para calcular a próxima direção de busca (β_k)
-    // β_k é um escalar que decide quanto da direção antiga pk deve entrar na nova direção
-    real_t rho_new = dot(r, r, n); // (r_{k+1})^T (r_{k+1})
-    if (!isfinite(rho_new)) {
-      fprintf(stderr, "cg_no_prec: rho_new inválido\n");
-      free(r); free(p); free(Ap); free(x_old);
-      return -1;
+    // SGS: força ω=1.0
+    // SSOR: exige 0<ω<2 (do enunciado e teoria)
+    
+    // Se é Gauss-Seidel, é forçado ω = 1.0
+    if (M == PCG_PRECOND_SGS)
+    {
+        contexto->omega = 1.0;
     }
 
-    // Calcula o escalar da nova direção de busca (β)
-    real_t beta = rho_new / rho;
+    // Se é SSOR, ω é verificado se está 0.0 < ω < 2.0
+    else if (M == PCG_PRECOND_SSOR)
+    {
+        if (!(omega > 0.0 && omega < 2.0))
+        {
+            fprintf(stderr, "[pcg] omega invalido p/ SSOR: %.6g (esperado 0<omega<2)\n", omega);
+            return -5;
+        }
+        contexto->omega = omega;
+    }
 
-    // A nova direção é a combinação do novo resíduo com a direção de busca anterior pk * β_k
-    // p_{k+1} = r_{k+1} + beta p_k
-    for (int i = 0; i < n; ++i) 
-      p[i] = r[i] + beta * p[i];
-
-    // Atualiza de fato rho
-    rho = rho_new;
-  }
-
-  // Cálculo do tempo médio por iteração
-  t_loop = timestamp() - t_loop;
-  if (t_iter) {
-    if (it > 0)
-      *t_iter = t_loop / (real_t)it;
+    // Senão, é ignorada a atribuição de ω (ω = -1.0 sem pré-condicionador ou ω = 0.0 Jacobi)
     else
-      *t_iter = 0.0;
-  }
-
-  // Cálculo do resíduo final e tempo do resíduo final
-  if (t_res || res_norm_out) {
-    if (t_res) *t_res = timestamp();
-
-    // Calcula o resíduo final
-    // r = b - A x
-    matvec_dense(A, x, Ap, n);
-    for (int i = 0; i < n; ++i) 
-      r[i] = b[i] - Ap[i];
-    // Calcula a norma L2 do resíduo
-    if (res_norm_out) 
-      *res_norm_out = norm2(r, n);
-    // Calcula o tempo gasto para calcular o resíduo final
-    if (t_res) 
-      *t_res = timestamp() - *t_res;
-  }
-
-  // Liberação de memória
-  free(r); free(p); free(Ap); free(x_old);
-  // Retorna o número de iterações realizadas
-  return it;
-}
-
-// ---------- CG com pré-condicionador Jacobi (ω = 0.0) ----------
-
-// Função auxiliar para resolver M z = r, onde M = D (diagonal de A)
-// M é o pré-condicionador (M = D)
-// z é o resíduo pré-condicionado atual (D⁻¹ × r_atual)
-// r é o resíduo atual: r = b - A*x
-
-/*
-Exemplo:
-M[0,0] * z[0] = r[0]  →  z[0] = r[0] / M[0,0] = r[0] / A[0,0]
-M[1,1] * z[1] = r[1]  →  z[1] = r[1] / M[1,1] = r[1] / A[1,1]  
-M[2,2] * z[2] = r[2]  →  z[2] = r[2] / M[2,2] = r[2] / A[2,2]
-*/
-
-// Essa função (jacobi_solve) faz a aplicação do pré-condicionador de Jacobi
-// Ela pega o elemento da diagonal principal da Matriz A (Aii)
-// Se Aii for muito pequeno, então define z[i] = 0 para evitar divisão por zero
-// Caso contraŕio, faz o cálculo de z (z = r / Aii)
-// Lembrando que z é um vetor qualquer para testar o comportamento da matriz A
-// Também lembrando que o resíduo é r = b - Ax
-
-// O pré-condicionador de Jacobi , pela teoria, usa apenas a diagonal de A, por isso é dessa maneira
-// Essa divisão (z = r / Aii) serve para corrigir (ou normalizar) cada componente do resíduo de acordo com a escala da diagonal de A
-// Cada z[i] terá os valores normalizados da diagonal principal (Aii) da matriz A
-void jacobi_solve(const real_t *A, const real_t *r, real_t *z, int n) {
-  for (int i = 0; i < n; ++i) {
-    real_t aii = A[i*(size_t)n + i]; // elemento diagonal A[i][i]
-    if (fabs(aii) <= DBL_EPSILON) {
-      fprintf(stderr, "jacobi_solve: elemento diagonal A[%d][%d] = %g muito pequeno\n", i, i, aii);
-      z[i] = 0.0; // Se for muito próximo de zero, é igual a zero
-    } else {
-      z[i] = r[i] / aii; // resíduo pré-condicionado = resíduo atual / A[i][i]
+    {
+        contexto->omega = omega;
     }
-  }
-}
 
-int cg_jacobi_prec(const real_t *A, const real_t *b, real_t *x,
-                   int n, int maxit, real_t eps,
-                   rtime_t *t_iter, rtime_t *t_res,
-                   real_t *res_norm_out)
-{
-  if (!A || !b || !x || n <= 0 || maxit <= 0 || eps < 0.0) {
-    fprintf(stderr, "cg_jacobi_prec: parâmetros inválidos\n");
-    return -1;
-  }
-
-  // aloca vetores auxiliares
-  real_t *r  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *z  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *p  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *Ap = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *x_old = (real_t*) malloc((size_t)n * sizeof(real_t));
-  if (!r || !z || !p || !Ap || !x_old) {
-    fprintf(stderr, "cg_jacobi_prec: falha de alocação\n");
-    free(r); free(z); free(p); free(Ap); free(x_old);
-    return -1;
-  }
-
-  // O resto é exatamente igual a função sem pré-condicionador, mas agora temos z com 
-  // valores normalizados (corrigidos) pelo pré-condicionador
-  // x0 = 0
-  vec_set_zero(x, n);
-
-  // r0 = b - A*x0 = b
-  vec_copy(r, b, n);
-
-  // z0 = M^{-1} * r0 (resolve M z = r, onde M = D)
-  jacobi_solve(A, r, z, n);
-
-  // p0 = z0 (direção inicial)
-  vec_copy(p, z, n);
-
-  real_t rho = dot(r, z, n); // r^T z (produto interno modificado)
-  if (rho <= DBL_EPSILON) {
-    // já convergiu em x0
-    if (t_iter) *t_iter = 0.0;
-    // resíduo final (≈ ||b||2, pois x=0)
-    if (t_res) {
-      *t_res = timestamp();
-      *t_res = timestamp() - *t_res;
+    if (M == PCG_PRECOND_NONE)
+        return 0;
+    
+    // y serve para armazenar M⁻¹r de qualquer PC
+    contexto->y = (real_t *)calloc((size_t)n, sizeof(real_t));
+    if (!contexto->y)
+    {
+        pcg_free(contexto);
+        return -1;
     }
-    if (res_norm_out) *res_norm_out = norm2(r, n);
-    free(r); free(z); free(p); free(Ap); free(x_old);
+
+    // Se for PC de Jacobi, precisamos extrair a diagonal principal e sua inversa
+    if (M == PCG_PRECOND_JACOBI)
+    {
+        contexto->D = (real_t *)malloc((size_t)n * sizeof(real_t));
+        contexto->invD = (real_t *)malloc((size_t)n * sizeof(real_t));
+        if (!contexto->D || !contexto->invD)
+        {
+            pcg_free(contexto);
+            return -2;
+        }
+
+        if (extrai_diag_e_invD(A, n, k, contexto->D, contexto->invD, 1e-30) != 0)
+        {
+            fprintf(stderr, "[pcg] Jacobi inviavel: diagonal nula/pequena\n");
+            pcg_free(contexto);
+            return -3;
+        }
+        return 0;
+    }
+
+    // SGS/SSOR: precisamos de t e u para armazenar resultados intermediários durante as etapas
+    // (varredura sobre o sistema linear modificado)
+    contexto->t = (real_t *)calloc((size_t)n, sizeof(real_t));
+    contexto->u = (real_t *)calloc((size_t)n, sizeof(real_t));
+    if (!contexto->t || !contexto->u)
+    {
+        pcg_free(contexto);
+        return -4;
+    }
+
     return 0;
-  }
-
-  int it = 0;
-  rtime_t t_loop = timestamp();
-
-  for (it = 1; it <= maxit; ++it) {
-    // Ap = A * p
-    matvec_dense(A, p, Ap, n);
-
-    real_t denom = dot(p, Ap, n); // p^T A p
-    if (!(denom > 0.0) || !isfinite(denom)) {
-      fprintf(stderr, "cg_jacobi_prec: breakdown numérico (p^T A p = %g)\n", denom);
-      free(r); free(z); free(p); free(Ap); free(x_old);
-      return -1;
-    }
-
-    real_t alpha = rho / denom;
-
-    // x_{k+1} = x_k + alpha p_k
-    vec_copy(x_old, x, n);
-    axpy(x, alpha, p, n);
-
-    // r_{k+1} = r_k - alpha Ap
-    for (int i = 0; i < n; ++i) r[i] -= alpha * Ap[i];
-
-    // critério do trabalho: ||x_new - x_old||_inf < eps
-    real_t aprox_err = norm_inf_diff(x, x_old, n);
-    if (aprox_err < eps) break;
-
-    // z_{k+1} = M^{-1} * r_{k+1}
-    jacobi_solve(A, r, z, n);
-
-    real_t rho_new = dot(r, z, n); // r_{k+1}^T z_{k+1}
-    if (!isfinite(rho_new)) {
-      fprintf(stderr, "cg_jacobi_prec: rho_new inválido\n");
-      free(r); free(z); free(p); free(Ap); free(x_old);
-      return -1;
-    }
-
-    real_t beta = rho_new / rho;
-
-    // p_{k+1} = z_{k+1} + beta p_k
-    for (int i = 0; i < n; ++i) p[i] = z[i] + beta * p[i];
-
-    rho = rho_new;
-  }
-
-  t_loop = timestamp() - t_loop;
-  if (t_iter) *t_iter = (it > 0 ? t_loop / (real_t)it : 0.0);
-
-  // resíduo final e tempo_residuo
-  if (t_res || res_norm_out) {
-    if (t_res) *t_res = timestamp();
-
-    // r = b - A x
-    matvec_dense(A, x, Ap, n); // reutiliza Ap como A*x
-    for (int i = 0; i < n; ++i) r[i] = b[i] - Ap[i];
-
-    if (res_norm_out) *res_norm_out = norm2(r, n);
-    if (t_res) *t_res = timestamp() - *t_res;
-  }
-
-  free(r); free(z); free(p); free(Ap); free(x_old);
-  return it;
 }
 
-// ---------- CG com pré-condicionador de Gauss-Seidel (ω = 1.0) ----------
+/* ------------------------ Aplicação do pré-condicionador -------------------- */
 
-// Essa função (gauss_seidel_solve) faz a aplicação do pré-condicionador de Gauss-Seidel
-// ... explicarei depois que entender ...
-// ...
-
-// Função auxiliar: resolve (D+L)z = r por forward substitution
-void gauss_seidel_solve(const real_t *A, const real_t *r, real_t *z, int n) {
-  for (int i = 0; i < n; ++i) {
-    real_t sum = 0.0;
-    for (int j = 0; j < i; ++j) {
-      sum += A[i*(size_t)n + j] * z[j];
-    }
-    real_t dii = A[i*(size_t)n + i];
-    if (fabs(dii) <= DBL_EPSILON) {
-      fprintf(stderr, "gauss_seidel_solve: elemento diagonal A[%d][%d] = %g muito pequeno\n", i, i, dii);
-      z[i] = 0.0;
-    } else {
-      z[i] = (r[i] - sum) / dii;
-    }
-  }
-}
-
-int cg_gs_prec(const real_t *A, const real_t *b, real_t *x,
-               int n, int maxit, real_t eps,
-               rtime_t *t_iter, rtime_t *t_res,
-               real_t *res_norm_out)
+void pcg_apply(const real_t *A, int n, int k, const pcg_contexto_t *contexto, const real_t *r, real_t *y)
 {
-  if (!A || !b || !x || n <= 0 || maxit <= 0 || eps < 0.0) {
-    fprintf(stderr, "cg_gs_prec: parâmetros inválidos\n");
-    return -1;
-  }
+    switch (contexto->type)
+    {
+    // Se não houver PC, apenas copia o resíduo para y = M⁻¹r, que resulta em r
+    case PCG_PRECOND_NONE:
+        vet_copy(n, r, y);
+        break;
 
-  real_t *r  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *z  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *p  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *Ap = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *x_old = (real_t*) malloc((size_t)n * sizeof(real_t));
-  if (!r || !z || !p || !Ap || !x_old) {
-    fprintf(stderr, "cg_gs_prec: falha de alocação\n");
-    free(r); free(z); free(p); free(Ap); free(x_old);
-    return -1;
-  }
+    // Se o PC for de Jacobi, faz y = D⁻¹r
+    case PCG_PRECOND_JACOBI:
+        aplica_jacobi(n, contexto->invD, r, y);
+        break;
+    
+    // Nos dois métodos abaixo, não transformamos M explicitamente
+    // Caso for GS, faz varreduras progressiva e regressiva:
+    // (D + L) t = r
+    // u = D t
+    // (D + U) y = D t
 
-  vec_set_zero(x, n);
-  vec_copy(r, b, n);
+    // Caso for SSOR, faz varreduras progressiva e regressiva (M_ω = (D + ωL) D⁻¹ (D + ωU)):
+    // (D/ω + L) t = r 
+    // u = D t
+    // (D/ω + U) y = u
 
-  gauss_seidel_solve(A, r, z, n);
-  vec_copy(p, z, n);
+    // Os métodos são semelhantes, o que muda é o peso da diagonal D nas etapas de sweep
+    // Para GS, escala_diag = 1.0
+    // Para SSOR, escala_diag = 1/ω
+    case PCG_PRECOND_SGS:
+    case PCG_PRECOND_SSOR:
+    {
+        // Se for GS, mantém escala_diag = 1.0
+        real_t escala_diag = 1.0;
+        // Se for SSOR, escala_diag = 1/ω
+        if (contexto->type == PCG_PRECOND_SSOR)
+        {
+            escala_diag = 1.0 / contexto->omega;
+        }
 
-  real_t rho = dot(r, z, n);
-  if (rho <= DBL_EPSILON) {
-    if (t_iter) *t_iter = 0.0;
-    if (t_res) {
-      *t_res = timestamp();
-      *t_res = timestamp() - *t_res;
-    }
-    if (res_norm_out) *res_norm_out = norm2(r, n);
-    free(r); free(z); free(p); free(Ap); free(x_old);
-    return 0;
-  }
+        // (D*escala_diag + L) t = r
+        varredura_progressiva_DL(A, n, k, escala_diag, r, contexto->t);
 
-  int it = 0;
-  rtime_t t_loop = timestamp();
+        // u = D t
+        for (int i = 0; i < n; ++i)
+            contexto->u[i] = A[IDX(i, i, n)] * contexto->t[i];
 
-  for (it = 1; it <= maxit; ++it) {
-    matvec_dense(A, p, Ap, n);
-
-    real_t denom = dot(p, Ap, n);
-    if (!(denom > 0.0) || !isfinite(denom)) {
-      fprintf(stderr, "cg_gs_prec: breakdown numérico (p^T A p = %g)\n", denom);
-      free(r); free(z); free(p); free(Ap); free(x_old);
-      return -1;
-    }
-
-    real_t alpha = rho / denom;
-
-    vec_copy(x_old, x, n);
-    axpy(x, alpha, p, n);
-
-    for (int i = 0; i < n; ++i) r[i] -= alpha * Ap[i];
-
-    real_t aprox_err = norm_inf_diff(x, x_old, n);
-    if (aprox_err < eps) break;
-
-    gauss_seidel_solve(A, r, z, n);
-
-    real_t rho_new = dot(r, z, n);
-    if (!isfinite(rho_new)) {
-      fprintf(stderr, "cg_gs_prec: rho_new inválido\n");
-      free(r); free(z); free(p); free(Ap); free(x_old);
-      return -1;
+        // (D*escala_diag + U) y = u
+        varredura_regressiva_DU(A, n, k, escala_diag, contexto->u, y);
+        break;
     }
 
-    real_t beta = rho_new / rho;
-    for (int i = 0; i < n; ++i) p[i] = z[i] + beta * p[i];
-
-    rho = rho_new;
-  }
-
-  t_loop = timestamp() - t_loop;
-  if (t_iter) *t_iter = (it > 0 ? t_loop / (real_t)it : 0.0);
-
-  if (t_res || res_norm_out) {
-    if (t_res) *t_res = timestamp();
-    matvec_dense(A, x, Ap, n);
-    for (int i = 0; i < n; ++i) r[i] = b[i] - Ap[i];
-    if (res_norm_out) *res_norm_out = norm2(r, n);
-    if (t_res) *t_res = timestamp() - *t_res;
-  }
-
-  free(r); free(z); free(p); free(Ap); free(x_old);
-  return it;
+    default:
+        // Por default, sem PC
+        vet_copy(n, r, y);
+    }
 }
 
-// ---------- CG com pré-condicionador SSOR (1.0 < ω < 2.0) ----------
+/* ------------------------ Liberação do contexto ----------------------------- */
 
-// Essa função (ssor_prec_solve) faz a aplicação do pré-condicionador SSOR
-// ... explicarei depois que entender ...
-// ...
-
-// Função auxiliar: aplica o pré-condicionador SSOR (z = M^{-1} r)
-void ssor_prec_solve(const real_t *A, const real_t *r, real_t *z, int n, real_t omega) {
-  // Monta D, L, U
-  real_t *D = (real_t*) calloc((size_t)n * n, sizeof(real_t));
-  real_t *L = (real_t*) calloc((size_t)n * n, sizeof(real_t));
-  real_t *U = (real_t*) calloc((size_t)n * n, sizeof(real_t));
-  for (int i = 0; i < n; ++i) {
-    for (int j = 0; j < n; ++j) {
-      real_t aij = A[i*n + j];
-      if (i == j) D[i*n + j] = aij;
-      else if (j < i) L[i*n + j] = aij;
-      else U[i*n + j] = aij;
-    }
-  }
-  // Monta (D + omega*L) e (D + omega*U)
-  real_t *DL = (real_t*) calloc((size_t)n * n, sizeof(real_t));
-  real_t *DU = (real_t*) calloc((size_t)n * n, sizeof(real_t));
-  for (int i = 0; i < n; ++i) {
-    for (int j = 0; j < n; ++j) {
-      DL[i*n + j] = (i == j ? D[i*n + i] : 0.0) + omega * L[i*n + j];
-      DU[i*n + j] = (i == j ? D[i*n + i] : 0.0) + omega * U[i*n + j];
-    }
-  }
-  // Forward: (D + omega*L) y = r
-  real_t *y = (real_t*) calloc((size_t)n, sizeof(real_t));
-  for (int i = 0; i < n; ++i) {
-    real_t sum = 0.0;
-    for (int j = 0; j < i; ++j)
-      sum += DL[i*n + j] * y[j];
-    y[i] = (r[i] - sum) / DL[i*n + i];
-  }
-  // D y
-  real_t *Dy = (real_t*) calloc((size_t)n, sizeof(real_t));
-  for (int i = 0; i < n; ++i)
-    Dy[i] = D[i*n + i] * y[i];
-  // Backward: (D + omega*U) z = D y
-  for (int i = n-1; i >= 0; --i) {
-    real_t sum = 0.0;
-    for (int j = i+1; j < n; ++j)
-      sum += DU[i*n + j] * z[j];
-    z[i] = (Dy[i] - sum) / DU[i*n + i];
-  }
-  free(D); free(L); free(U); free(DL); free(DU); free(y); free(Dy);
-}
-
-int cg_ssor_prec(const real_t *A, const real_t *b, real_t *x,
-                 int n, int maxit, real_t eps, real_t omega,
-                 rtime_t *t_iter, rtime_t *t_res,
-                 real_t *res_norm_out)
+void pcg_free(pcg_contexto_t *contexto)
 {
-  if (!A || !b || !x || n <= 0 || maxit <= 0 || eps < 0.0 || omega <= 1.0 || omega >= 2.0) {
-    fprintf(stderr, "cg_ssor_prec: parâmetros inválidos\n");
-    return -1;
-  }
+    free(contexto->y);
+    free(contexto->D);
+    free(contexto->invD);
+    free(contexto->t);
+    free(contexto->u);
+    memset(contexto, 0, sizeof(*contexto));
+}
 
-  real_t *r  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *z  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *p  = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *Ap = (real_t*) malloc((size_t)n * sizeof(real_t));
-  real_t *x_old = (real_t*) malloc((size_t)n * sizeof(real_t));
-  if (!r || !z || !p || !Ap || !x_old) {
-    fprintf(stderr, "cg_ssor_prec: falha de alocação\n");
-    free(r); free(z); free(p); free(Ap); free(x_old);
-    return -1;
-  }
+/* ------------------------ Solver CG/PCG unificado --------------------------- */
 
-  vec_set_zero(x, n);
-  vec_copy(r, b, n);
-
-  ssor_prec_solve(A, r, z, n, omega);
-  vec_copy(p, z, n);
-
-  real_t rho = dot(r, z, n);
-  if (rho <= DBL_EPSILON) {
-    if (t_iter) *t_iter = 0.0;
-    if (t_res) {
-      *t_res = timestamp();
-      *t_res = timestamp() - *t_res;
-    }
-    if (res_norm_out) *res_norm_out = norm2(r, n);
-    free(r); free(z); free(p); free(Ap); free(x_old);
-    return 0;
-  }
-
-  int it = 0;
-  rtime_t t_loop = timestamp();
-
-  for (it = 1; it <= maxit; ++it) {
-    matvec_dense(A, p, Ap, n);
-
-    real_t denom = dot(p, Ap, n);
-    if (!(denom > 0.0) || !isfinite(denom)) {
-      fprintf(stderr, "cg_ssor_prec: breakdown numérico (p^T A p = %g)\n", denom);
-      free(r); free(z); free(p); free(Ap); free(x_old);
-      return -1;
+// Baseado em CUNHA (2002)
+int cg_solve(const real_t *A, const real_t *b, real_t *x,
+             int n, int k, int maxit, real_t eps_inf,
+             pcg_precond_t M, real_t omega,
+             real_t *norma_delta_x_inf_out)
+{
+    /* buffers comuns: r (resíduo), v (direção), z (A v) */
+    real_t *r = (real_t *)calloc((size_t)n, sizeof(real_t));
+    real_t *v = (real_t *)calloc((size_t)n, sizeof(real_t));
+    real_t *z = (real_t *)calloc((size_t)n, sizeof(real_t));
+    if (!r || !v || !z)
+    {
+        fprintf(stderr, "[cg/pcg] Falha de alocacao de memoria (r/v/z)\n");
+        free(r);
+        free(v);
+        free(z);
+        return -1;
     }
 
-    real_t alpha = rho / denom;
+    // Se o chamador pediu a norma, faz a inicialização
+    if (norma_delta_x_inf_out)
+        *norma_delta_x_inf_out = NAN;
+    real_t dx_last = NAN; // guardaremos a ÚLTIMA ||Δx||∞ (norma) medida
 
-    vec_copy(x_old, x, n);
-    axpy(x, alpha, p, n);
-
-    for (int i = 0; i < n; ++i) r[i] -= alpha * Ap[i];
-
-    real_t aprox_err = norm_inf_diff(x, x_old, n);
-    if (aprox_err < eps) break;
-
-    ssor_prec_solve(A, r, z, n, omega);
-
-    real_t rho_new = dot(r, z, n);
-    if (!isfinite(rho_new)) {
-      fprintf(stderr, "cg_ssor_prec: rho_new inválido\n");
-      free(r); free(z); free(p); free(Ap); free(x_old);
-      return -1;
+    /* ---------- (PREP) Setup genérico do pré-condicionador ---------- */
+    pcg_contexto_t pc = {0};
+    int rc = pcg_setup(A, n, k, M, omega, &pc);
+    if (rc != 0)
+    {
+        fprintf(stderr, "[pcg] falha no setup (rc=%d)\n", rc);
+        pcg_free(&pc);
+        free(r);
+        free(v);
+        free(z);
+        return rc;
     }
 
-    real_t beta = rho_new / rho;
-    for (int i = 0; i < n; ++i) p[i] = z[i] + beta * p[i];
+    /* ------------------------------------------------------------------
+    [linha 1]  x^(0) = 0,  r = b,  aux = r^T r,  v = b
+    ------------------------------------------------------------------ */
+    memset(x, 0, (size_t)n * sizeof(real_t)); /* x^(0) = 0 */
+    vet_copy(n, b, r);                        /* r = b     */
 
-    rho = rho_new;
-  }
+    /* aux armazena:
+     *  - CG puro:     aux = r^T r
+     *  - PCG (geral): aux = r^T y   (y = M⁻¹ r)
+     */
+    real_t aux = 0.0;
 
-  t_loop = timestamp() - t_loop;
-  if (t_iter) *t_iter = (it > 0 ? t_loop / (real_t)it : 0.0);
+    if (M == PCG_PRECOND_NONE)
+    {
+        aux = vet_produto(n, r, r); // CG puro: aux = r^T r 
+        vet_copy(n, r, v);          // v = r                
+    }
+    else
+    {
+        pcg_apply(A, n, k, &pc, r, pc.y); // PCG: y = M⁻¹ r 
+        aux = vet_produto(n, r, pc.y);    // PCG: aux = r^T y  
+        vet_copy(n, pc.y, v);             // PCG: v = y        
+    }
 
-  if (t_res || res_norm_out) {
-    if (t_res) *t_res = timestamp();
-    matvec_dense(A, x, Ap, n);
-    for (int i = 0; i < n; ++i) r[i] = b[i] - Ap[i];
-    if (res_norm_out) *res_norm_out = norm2(r, n);
-    if (t_res) *t_res = timestamp() - *t_res;
-  }
+    // Constante para proteger divisões por 0 ao calcular m = aux1/aux 
+    const real_t eps_den = 1e-30;
 
-  free(r); free(z); free(p); free(Ap); free(x_old);
-  return it;
+    /* ------------------------------------------------------------------
+    [linha 2]  Para k = 0 : max, faça
+    ------------------------------------------------------------------ */
+    for (int it = 0; it < maxit; ++it)
+    {
+        // [linha 3]  z = A v   (multiplicação matriz × vetor)
+        matvet_densa(A, v, z, n);
+
+        // [linha 4]  s = aux / (v^T z) 
+        real_t vTz = vet_produto(n, v, z);
+
+        // robustez numérica: se denom ~0 e “energia” do resíduo já é pequena, finalize
+        if (fabs(vTz) < 1e-30)
+        {
+            // NONE: sqrt(r^T r);  PCG: sqrt(r^T y) (aux)
+            real_t res_energy = sqrt(fabs(aux));
+            if (res_energy < 1e-12)
+            {
+                if (norma_delta_x_inf_out)
+                    *norma_delta_x_inf_out = dx_last; // última Δx∞ conhecida
+                pcg_free(&pc);
+                free(r);
+                free(v);
+                free(z);
+                return it; // converge sem atualizar x nesta iteração
+            }
+            fprintf(stderr, "[cg/pcg] v^T z ~ 0 (divisao instavel)\n");
+            break; // cai no final e libera tudo
+        }
+
+        real_t s = aux / vTz;
+
+        // [linha 5]  x^(k+1) = x^(k) + s v
+        // (e computa ||Δx||_∞ = max_i |s*v[i]|)
+        real_t dx_max = 0.0;
+        for (int i = 0; i < n; ++i)
+        {
+            real_t dx_i = s * v[i];
+            x[i] += dx_i;
+            real_t adx = fabs(dx_i);
+            if (adx > dx_max)
+                dx_max = adx;
+        }
+        dx_last = dx_max; // guarda a ÚLTIMA norma Δx∞ medida
+
+        // [linha 6]  r = r − s z  (AXPY com alfa = -s)
+        vet_axpy(n, -s, z, r);
+
+        // ||Δx||_∞ < eps
+        if (dx_max < eps_inf)
+        {
+            if (norma_delta_x_inf_out)
+                *norma_delta_x_inf_out = dx_max; // devolve a Δx∞ final exata
+            pcg_free(&pc);
+            free(r);
+            free(v);
+            free(z);
+            return it + 1;
+        }
+
+        /* [linha 7]–[linha 11]
+           Algoritmo 3.5 (CG “puro”) x PCG (Jacobi/GS/SSOR):
+           - NONE:
+             [7]  aux1 = r^T r
+             [10] m = aux1/aux; aux = aux1
+             [11] v = r + m v
+           - PCG:
+             [7]  y = M⁻¹ r
+             [8]  aux1 = r^T y
+             [10] m = aux1/aux; aux = aux1
+             [11] v = y + m v
+        */
+        if (M == PCG_PRECOND_NONE)
+        {
+            real_t aux1 = vet_produto(n, r, r);                      // [linha 7]  aux1 = r^T r
+            real_t m = aux1 / (fabs(aux) < eps_den ? eps_den : aux); // [10]
+            aux = aux1;                                                   
+            for (int i = 0; i < n; ++i)                              // [11]
+                v[i] = r[i] + m * v[i];
+        }
+        else
+        {
+            pcg_apply(A, n, k, &pc, r, pc.y);                        // [linha 7]  y = M⁻¹ r
+            real_t aux1 = vet_produto(n, r, pc.y);                   // [linha 8]  aux1 = r^T y
+            real_t m = aux1 / (fabs(aux) < eps_den ? eps_den : aux); // [10]
+            aux = aux1;                                                  
+            for (int i = 0; i < n; ++i)                              // [11]
+                v[i] = pc.y[i] + m * v[i];
+        }
+    }
+
+    // atingiu limite de iterações sem satisfazer ||Δx||_∞
+    if (norma_delta_x_inf_out)
+        *norma_delta_x_inf_out = dx_last; // reporta a última norma medida
+
+    pcg_free(&pc);
+    free(r);
+    free(v);
+    free(z);
+
+    return maxit;
 }
