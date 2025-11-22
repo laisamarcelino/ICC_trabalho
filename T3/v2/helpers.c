@@ -9,12 +9,9 @@ real_t vet_produto(int n, const real_t *x, const real_t *y)
     int i;
 
     // Unroll de 4 elementos
-    for (i = 0; i < n - n%4; i += 4)
+    for (i = 0; i < n - n % 4; i += 4)
     {
-        s += x[i] * y[i]
-           + x[i + 1] * y[i + 1]
-           + x[i + 2] * y[i + 2]
-           + x[i + 3] * y[i + 3];
+        s += x[i] * y[i] + x[i + 1] * y[i + 1] + x[i + 2] * y[i + 2] + x[i + 3] * y[i + 3];
     }
 
     // Resto (se n não múltiplo de 4)
@@ -23,7 +20,6 @@ real_t vet_produto(int n, const real_t *x, const real_t *y)
 
     return s;
 }
-
 
 // Calcula a norma 2 (euclidiana) de um vetor (raiz da soma dos quadrados dos elementos)
 real_t vet_norma2(int n, const real_t *x)
@@ -38,9 +34,9 @@ void vet_copy(int n, const real_t *fonte, real_t *dst)
     int i;
 
     // Unroll de 4 elementos
-    for (i = 0; i < n - n%4; i += 4)
+    for (i = 0; i < n - n % 4; i += 4)
     {
-        dst[i]     = fonte[i];
+        dst[i] = fonte[i];
         dst[i + 1] = fonte[i + 1];
         dst[i + 2] = fonte[i + 2];
         dst[i + 3] = fonte[i + 3];
@@ -49,7 +45,6 @@ void vet_copy(int n, const real_t *fonte, real_t *dst)
     for (; i < n; ++i)
         dst[i] = fonte[i];
 }
-
 
 // Seta os valores de um vetor com o valor val
 void vet_preenche(int n, real_t val, real_t *x)
@@ -63,9 +58,9 @@ void vet_axpy(int n, real_t alpha, const real_t *x, real_t *y)
     int i;
 
     // Unroll de 4 elementos
-    for (i = 0; i < n - n%4; i += 4)
+    for (i = 0; i < n - n % 4; i += 4)
     {
-        y[i]     += alpha * x[i];
+        y[i] += alpha * x[i];
         y[i + 1] += alpha * x[i + 1];
         y[i + 2] += alpha * x[i + 2];
         y[i + 3] += alpha * x[i + 3];
@@ -81,9 +76,9 @@ void vet_escala(int n, real_t alpha, real_t *x)
     int i;
 
     // Unroll de 4 elementos
-    for (i = 0; i < n - n%4; i += 4)
+    for (i = 0; i < n - n % 4; i += 4)
     {
-        x[i]     *= alpha;
+        x[i] *= alpha;
         x[i + 1] *= alpha;
         x[i + 2] *= alpha;
         x[i + 3] *= alpha;
@@ -92,7 +87,6 @@ void vet_escala(int n, real_t alpha, real_t *x)
     for (; i < n; ++i)
         x[i] *= alpha;
 }
-
 
 /* ---------- Matriz densa ---------- */
 
@@ -220,22 +214,71 @@ void varredura_regressiva_DU(const matdiag_t *A, int n, int k,
     }
 }
 
+void matvet_diagonais(const matdiag_t *A, const real_t *x, real_t *y)
+{
+    int n = A->n, k = A->k;
+
+    for (int i = 0; i < n; ++i)
+        y[i] = 0.0;
+
+    for (int d = 0; d < k; ++d)
+    {
+        int offset = A->offsets[d];
+        real_t *diag = A->diag[d];
+
+        if (offset >= 0)
+        {
+            int i;
+            int limite = n - offset;
+
+            for (i = 0; i < limite - limite % 4; i += 4)
+            {
+                y[i] += diag[i] * x[i + offset];
+                y[i + 1] += diag[i + 1] * x[i + 1 + offset];
+                y[i + 2] += diag[i + 2] * x[i + 2 + offset];
+                y[i + 3] += diag[i + 3] * x[i + 3 + offset];
+            }
+
+            for (; i < limite; ++i)
+                y[i] += diag[i] * x[i + offset];
+        }
+        else
+        {
+            int start = -offset;
+            int i;
+
+            for (i = start; i < n - n % 4; i += 4)
+            {
+                y[i] += diag[i] * x[i + offset];
+                y[i + 1] += diag[i + 1] * x[i + 1 + offset];
+                y[i + 2] += diag[i + 2] * x[i + 2 + offset];
+                y[i + 3] += diag[i + 3] * x[i + 3 + offset];
+            }
+
+            for (; i < n; ++i)
+                y[i] += diag[i] * x[i + offset];
+        }
+    }
+}
+
 /* ---------- Calculo do Resíduo ---------- */
 
-// Calcula ||r||2 com r = b - A x (usando A densa n×n)
-real_t residuo_l2(const real_t *A, const real_t *b, const real_t *x, int n)
+real_t residuo_l2_v2(const matdiag_t *A, const real_t *b, const real_t *x)
 {
+    if (!A || !b || !x)
+        return NAN;
+
+    int n = A->n;
     real_t *Ax = (real_t *)calloc((size_t)n, sizeof(real_t));
     if (!Ax)
         return NAN;
 
-    matvet_densa(A, x, Ax, n);
+    matvet_diagonais(A, x, Ax);
 
     real_t s2 = 0.0;
-    int i;
+    int i = 0;
 
-    // Unroll de 4 elementos
-    for (i = 0; i < n - n%4; i += 4)
+    for (; i <= n - 4; i += 4)
     {
         real_t r0 = b[i]     - Ax[i];
         real_t r1 = b[i + 1] - Ax[i + 1];
@@ -254,55 +297,6 @@ real_t residuo_l2(const real_t *A, const real_t *b, const real_t *x, int n)
     free(Ax);
     return sqrt(s2);
 }
-
-
-void matvet_diagonais(const matdiag_t *A, const real_t *x, real_t *y)
-{
-    int n = A->n, k = A->k;
-
-    for (int i = 0; i < n; ++i)
-        y[i] = 0.0;
-
-    for (int d = 0; d < k; ++d)
-    {
-        int offset = A->offsets[d];
-        real_t *diag = A->diag[d];
-
-        if (offset >= 0)
-        {
-            int i;
-            int limite = n - offset;
-
-            for (i = 0; i < limite - limite%4; i += 4)
-            {
-                y[i]     += diag[i]     * x[i + offset];
-                y[i + 1] += diag[i + 1] * x[i + 1 + offset];
-                y[i + 2] += diag[i + 2] * x[i + 2 + offset];
-                y[i + 3] += diag[i + 3] * x[i + 3 + offset];
-            }
-
-            for (; i < limite; ++i)
-                y[i] += diag[i] * x[i + offset];
-        }
-        else
-        {
-            int start = -offset;
-            int i;
-
-            for (i = start; i < n - n%4; i += 4)
-            {
-                y[i]     += diag[i]     * x[i + offset];
-                y[i + 1] += diag[i + 1] * x[i + 1 + offset];
-                y[i + 2] += diag[i + 2] * x[i + 2 + offset];
-                y[i + 3] += diag[i + 3] * x[i + 3 + offset];
-            }
-
-            for (; i < n; ++i)
-                y[i] += diag[i] * x[i + offset];
-        }
-    }
-}
-
 
 int extrai_diag_e_invD_diag(const matdiag_t *A, real_t *D, real_t *invD, real_t eps)
 {

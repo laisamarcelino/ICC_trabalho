@@ -82,23 +82,31 @@ int main(void)
     srandom(20252);
 
     /* ----------------- Gera sistema k-diagonal esparso ----------------- */
-    matdiag_t A;
+    matdiag_t A = {0};
     real_t *b = NULL;
     criaKDiagonal_v2(n, k, &A, &b);
+
+    /* ----------------- Transformar para SPD ----------------- */
+    matdiag_t ASP = {0};
+    real_t *bsp = NULL;
+    rtime_t t_spd = 0.0;
+    genSimetricaPositiva_diag(&A, b, &ASP, &bsp, &t_spd);
+    liberaMatDiag(&A);
+    free(b);
 
     /* ----------------- Setup do pré-condicionador ----------------- */
     rtime_t t_pc_setup = 0.0;
     {
         pcg_contexto_t tmp = {0};
         rtime_t t0 = timestamp();
-        int rc = pcg_setup(&A, n, k, M, omega, &tmp);
+        int rc = pcg_setup(&ASP, n, ASP.k, M, omega, &tmp);
         t_pc_setup = timestamp() - t0;
         if (rc != 0)
         {
             fprintf(stderr, "Erro no setup do pre-condicionador (rc=%d)\n", rc);
             pcg_free(&tmp);
-            liberaMatDiag(&A);
-            free(b);
+            liberaMatDiag(&ASP);
+            free(bsp);
             return 1;
         }
         pcg_free(&tmp);
@@ -109,8 +117,8 @@ int main(void)
     if (!x)
     {
         fprintf(stderr, "Erro: memoria insuficiente para x\n");
-        liberaMatDiag(&A);
-        free(b);
+        liberaMatDiag(&ASP);
+        free(bsp);
         return 1;
     }
 
@@ -120,15 +128,15 @@ int main(void)
 
     {
         rtime_t t0 = timestamp();
-        iters = cg_solve(&A, b, x, n, k, maxit, eps, M, omega, &norma_delta_x_inf);
+        iters = cg_solve(&ASP, bsp, x, n, ASP.k, maxit, eps, M, omega, &norma_delta_x_inf);
         t_solve = timestamp() - t0;
     }
 
     if (iters < 0)
     {
         fprintf(stderr, "Falha no solver CG/PCG (codigo=%d)\n", iters);
-        liberaMatDiag(&A);
-        free(b);
+        liberaMatDiag(&ASP);
+        free(bsp);
         free(x);
         return 1;
     }
@@ -138,17 +146,19 @@ int main(void)
     real_t res_norm = 0.0;
     {
         rtime_t t0 = timestamp();
-        // Recalcula r = b - A*x em formato esparso
-        real_t *Ax = (real_t *)calloc(n, sizeof(real_t));
-        matvet_diagonais(&A, x, Ax);
-        for (int i = 0; i < n; ++i)
-        {
-            real_t ri = b[i] - Ax[i];
-            res_norm += ri * ri;
-        }
-        res_norm = sqrt(res_norm);
-        free(Ax);
+        res_norm = residuo_l2_v2(&ASP, bsp, x);
         t_res = timestamp() - t0;
+    }
+
+    /* ----------------- Cálculo dos tempos de saída ----------------- */
+    rtime_t tempo_iter = 0.0;
+    if (iters > 0)
+    {
+        tempo_iter = t_solve / (rtime_t)iters; /* [FIX-02] tempo médio usa apenas o solve */
+    }
+    else
+    {
+        tempo_iter = 0.0; /* [FIX-03] evita divisão por zero quando converge em 0 iterações */
     }
 
     /* ----------------- Saída final ----------------- */
@@ -157,13 +167,13 @@ int main(void)
         printf("%.16g%s", x[i], (i + 1 < n ? " " : "\n"));
     printf("%.8g\n", norma_delta_x_inf);
     printf("%.8g\n", res_norm);
-    printf("%.8g\n", t_pc_setup);
-    printf("%.8g\n", (t_solve - t_pc_setup) / (rtime_t)iters);
+    printf("%.8g\n", t_spd + t_pc_setup);
+    printf("%.8g\n", tempo_iter); /* [FIX-02] usa valor calculado e válido */
     printf("%.8g\n", t_res);
 
     /* ----------------- Liberação de memória ----------------- */
-    liberaMatDiag(&A);
-    free(b);
+    liberaMatDiag(&ASP);
+    free(bsp);
     free(x);
     return 0;
 }

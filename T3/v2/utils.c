@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <time.h> /* [FIX-01] timestamp depende de clock_gettime */
 
 #include "utils.h"
 
@@ -16,9 +17,9 @@
 
 rtime_t timestamp (void)
 {
-  // USAR DEPOIS -> struct timespec tp;
-  // USAR DEPOIS -> clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
-  // USAR DEPOIS -> return ( (rtime_t) tp.tv_sec*1.0e3 + (rtime_t) tp.tv_nsec*1.0e-6 );
+  struct timespec tp; /* [FIX-01] cronômetro reativado para medir tempos reais */
+  clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
+  return ( (rtime_t) tp.tv_sec*1.0e3 + (rtime_t) tp.tv_nsec*1.0e-6 );
 }
 
 /* Gera string '<baseName>_n'
@@ -37,4 +38,3 @@ string_t markerName(string_t baseName, int n)
   return mark;
 
 }
-

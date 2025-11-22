@@ -14,10 +14,10 @@ Otimizações:
             - Otimizações feitas na prova -> aplicar em helpers.c ~✅ (UNROLL APENAS)
 
     (OP2) Na operação de cálculo do resíduo (op2): R = b - Ax; 
-        - Reescrever multiplicação Ax considerando a estrutura esparsa (somente diagonais válidas).
-        - Reduzir acessos à memória (usar dados contíguos e alinhamento AVX).
-        - Garantir que a operação b - Ax use vetorização
-            - Otimizações feitas na prova -> aplicar em helpers.c
+        - Reescrever multiplicação Ax considerando a estrutura esparsa (somente diagonais válidas).✅
+        - Reduzir acessos à memória (usar dados contíguos e alinhamento AVX).✅
+        - Garantir que a operação b - Ax use vetorização. ✅
+            - Otimizações feitas na prova -> aplicar em helpers.c ✅
 
 Testes de desempenho:
     Inserir marcadores LIKWID_MARKER_START/STOP em:

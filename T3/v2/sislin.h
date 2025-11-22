@@ -21,6 +21,7 @@ void criaKDiagonal(int n, int k, real_t **A, real_t **B);
 void criaKDiagonal_v2(int n, int k, matdiag_t *A, real_t **B);
 void genSimetricaPositiva(real_t *A, real_t *b, int n, int k,
                           real_t **ASP, real_t *bsp, rtime_t *tempo);
+void genSimetricaPositiva_diag(const matdiag_t *A, const real_t *b,
+                               matdiag_t *ASP, real_t **bsp, rtime_t *tempo);
 
 #endif // __SISLIN_H__
-

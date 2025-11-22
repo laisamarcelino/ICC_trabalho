@@ -53,7 +53,7 @@ void varredura_regressiva_DU(const matdiag_t *A, int n, int k,
                              real_t escala_diag, const real_t *vet_dir, real_t *y);
 
 /* ---------- Cálculo do resíduo em norma L2 ---------- */
-real_t residuo_l2(const real_t *A, const real_t *b, const real_t *x, int n);
+real_t residuo_l2_v2(const matdiag_t *A, const real_t *b, const real_t *x);
 
 void liberaMatDiag(matdiag_t *A);
 

@@ -1,6 +1,6 @@
 # Compilador e flags
 CC = gcc
-CFLAGS = -O3 -march=native -mavx -fopt-info-vec
+CFLAGS = -O3 -march=native -mavx -fopt-info-vec -Wall -Wextra
 LFLAGS = -lm -llikwid
 
 # Nome do executável e arquivos do projeto
