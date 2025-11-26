@@ -88,7 +88,7 @@ void criaKDiagonal_v2(int n, int k, matdiag_t *A, real_t **B)
 }
 
 // Gera matriz simetrica positiva
-void genSimetricaPositiva(real_t *A, real_t *b, int n, int k,
+void genSimetricaPositiva(real_t *A, real_t *b, int n,
                           real_t **ASP, real_t *bsp, rtime_t *tempo)
 {
   *tempo = timestamp();

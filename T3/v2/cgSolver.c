@@ -99,7 +99,7 @@ int main(void)
     {
         pcg_contexto_t tmp = {0};
         rtime_t t0 = timestamp();
-        int rc = pcg_setup(&ASP, n, ASP.k, M, omega, &tmp);
+        int rc = pcg_setup(&ASP, n, M, omega, &tmp);
         t_pc_setup = timestamp() - t0;
         if (rc != 0)
         {
