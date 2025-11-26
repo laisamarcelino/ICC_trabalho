@@ -49,9 +49,9 @@ int main(void)
     }
     // k deve ser 7!
     // k = 7;
-    if (scanf("%d", &k) != 1 || k <= 1 || (k % 2 == 0))
+    if (scanf("%d", &k) != 1 || k != 7)
     {
-        fprintf(stderr, "Erro: k deve ser > 1 e ímpar\n");
+        fprintf(stderr, "Erro: k deve ser 7\n");
         return 1;
     }
     if (scanf("%lf", &w) != 1)
@@ -59,9 +59,9 @@ int main(void)
         fprintf(stderr, "Erro ao ler ω\n");
         return 1;
     }
-    if (scanf("%d", &maxit) != 1 || maxit <= 0)
+    if (scanf("%d", &maxit) != 1 || maxit <= 0 || maxit >= 25)
     {
-        fprintf(stderr, "Erro: maxit deve ser > 0\n");
+        fprintf(stderr, "Erro: maxit deve estar entre 0 e 25\n");
         return 1;
     }
     if (scanf("%lf", &eps) != 1 || eps <= 0.0)
