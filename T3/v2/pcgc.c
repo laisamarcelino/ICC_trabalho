@@ -8,7 +8,7 @@
 
 /* ------------------------ Setup do pré-condicionador ------------------------ */
 
-int pcg_setup(const matdiag_t *A, int n, int k, pcg_precond_t M, real_t omega, pcg_contexto_t *contexto)
+int pcg_setup(const matdiag_t *A, int n, pcg_precond_t M, real_t omega, pcg_contexto_t *contexto)
 {
     // Zera toda a struct para facilitar limpeza em caso de erro
     memset(contexto, 0, sizeof(*contexto));
@@ -195,7 +195,7 @@ int cg_solve(const matdiag_t *A, const real_t *b, real_t *x,
 
     /* ---------- (PREP) Setup genérico do pré-condicionador ---------- */
     pcg_contexto_t pc = {0};
-    int rc = pcg_setup(A, n, k, M, omega, &pc);
+    int rc = pcg_setup(A, n, M, omega, &pc);
     if (rc != 0)
     {
         fprintf(stderr, "[pcg] falha no setup (rc=%d)\n", rc);

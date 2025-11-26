@@ -36,7 +36,7 @@ typedef struct {
 } pcg_contexto_t;
 
 // Setup/Apply/Free do pré-condicionador
-int pcg_setup(const matdiag_t *A, int n, int k, pcg_precond_t M, real_t omega, pcg_contexto_t *contexto);
+int pcg_setup(const matdiag_t *A, int n, pcg_precond_t M, real_t omega, pcg_contexto_t *contexto);
 void pcg_apply(const matdiag_t *A, int n, int k, const pcg_contexto_t *contexto, const real_t *r, real_t *y);
 void pcg_free(pcg_contexto_t *contexto);
 
