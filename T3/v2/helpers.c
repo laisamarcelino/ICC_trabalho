@@ -228,34 +228,16 @@ void matvet_diagonais(const matdiag_t *A, const real_t *x, real_t *y)
 
         if (offset >= 0)
         {
-            int i;
+            // i de 0 até n - offset - 1, pois x[i + offset] deve ser < n
             int limite = n - offset;
-
-            for (i = 0; i < limite - limite % 4; i += 4)
-            {
-                y[i] += diag[i] * x[i + offset];
-                y[i + 1] += diag[i + 1] * x[i + 1 + offset];
-                y[i + 2] += diag[i + 2] * x[i + 2 + offset];
-                y[i + 3] += diag[i + 3] * x[i + 3 + offset];
-            }
-
-            for (; i < limite; ++i)
+            for (int i = 0; i < limite; ++i)
                 y[i] += diag[i] * x[i + offset];
         }
         else
         {
+            // i de -offset até n-1, pois x[i + offset] >= 0
             int start = -offset;
-            int i;
-
-            for (i = start; i < n - n % 4; i += 4)
-            {
-                y[i] += diag[i] * x[i + offset];
-                y[i + 1] += diag[i + 1] * x[i + 1 + offset];
-                y[i + 2] += diag[i + 2] * x[i + 2 + offset];
-                y[i + 3] += diag[i + 3] * x[i + 3 + offset];
-            }
-
-            for (; i < n; ++i)
+            for (int i = start; i < n; ++i)
                 y[i] += diag[i] * x[i + offset];
         }
     }

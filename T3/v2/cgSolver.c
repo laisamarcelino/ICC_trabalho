@@ -59,7 +59,7 @@ int main(void)
         fprintf(stderr, "Erro ao ler ω\n");
         return 1;
     }
-    if (scanf("%d", &maxit) != 1 || maxit <= 0 || maxit >= 25)
+    if (scanf("%d", &maxit) != 1 || maxit <= 0 || maxit > 25)
     {
         fprintf(stderr, "Erro: maxit deve estar entre 0 e 25\n");
         return 1;
@@ -122,14 +122,18 @@ int main(void)
         return 1;
     }
 
-    rtime_t t_solve = 0.0;
+    // --- NOVO: medir tempo de cada iteração (op1) ---
+    rtime_t t_op1_total = 0.0;
     int iters = -1;
     real_t norma_delta_x_inf = NAN;
 
     {
+        // Setup para medir tempo de cada iteração
         rtime_t t0 = timestamp();
-        iters = cg_solve(&ASP, bsp, x, n, ASP.k, maxit, eps, M, omega, &norma_delta_x_inf);
-        t_solve = timestamp() - t0;
+        // Chamar cg_solve modificado para rodar exatamente maxit iterações
+        // e medir tempo total das iterações (op1)
+        iters = cg_solve(&ASP, bsp, x, n, ASP.k, maxit, 0.0, M, omega, &norma_delta_x_inf);
+        t_op1_total = timestamp() - t0;
     }
 
     if (iters < 0)
@@ -141,20 +145,27 @@ int main(void)
         return 1;
     }
 
-    /* ----------------- Cálculo do resíduo final ----------------- */
-    rtime_t t_res = 0.0;
+    /* ----------------- Cálculo do resíduo final (op2) ----------------- */
+    rtime_t t_op2 = 0.0;
     real_t res_norm = 0.0;
     {
         rtime_t t0 = timestamp();
         res_norm = residuo_l2_v2(&ASP, bsp, x);
-        t_res = timestamp() - t0;
+        t_op2 = timestamp() - t0;
     }
+
+    // --- NOVO: imprimir tempos médios das operações ---
+    rtime_t tempo_op1_medio = (iters > 0) ? (t_op1_total / (rtime_t)iters) : 0.0;
+
+    printf("N = %d\n", n);
+    printf("Tempo médio op1 (CG iteração): %.8g ms\n", tempo_op1_medio);
+    printf("Tempo op2 (resíduo): %.8g ms\n", t_op2);
 
     /* ----------------- Cálculo dos tempos de saída ----------------- */
     rtime_t tempo_iter = 0.0;
     if (iters > 0)
     {
-        tempo_iter = t_solve / (rtime_t)iters; /* [FIX-02] tempo médio usa apenas o solve */
+        tempo_iter = t_op1_total / (rtime_t)iters; /* [FIX-02] tempo médio usa apenas o solve */
     }
     else
     {
@@ -169,7 +180,7 @@ int main(void)
     printf("%.8g\n", res_norm);
     printf("%.8g\n", t_spd + t_pc_setup);
     printf("%.8g\n", tempo_iter); /* [FIX-02] usa valor calculado e válido */
-    printf("%.8g\n", t_res);
+    printf("%.8g\n", t_op2);
 
     /* ----------------- Liberação de memória ----------------- */
     liberaMatDiag(&ASP);

@@ -133,14 +133,15 @@ int main(void)
         return 1;
     }
 
-    rtime_t t_solve = 0.0;
+    // --- NOVO: medir tempo de cada iteração (op1) ---
+    rtime_t t_op1_total = 0.0;
     int iters = -1;
-    real_t norma_delta_x_inf = NAN; // Recebe ||Δx||_∞ da última iteração
+    real_t norma_delta_x_inf = NAN;
     {
         rtime_t t0 = timestamp();
-        iters = cg_solve(ASP, bsp, x, n, k, maxit, eps, M, omega,
-                         &norma_delta_x_inf);
-        t_solve = timestamp() - t0;
+        // Forçar critério de parada apenas por maxit (eps_inf = 0.0)
+        iters = cg_solve(ASP, bsp, x, n, k, maxit, 0.0, M, omega, &norma_delta_x_inf);
+        t_op1_total = timestamp() - t0;
     }
 
     if (iters < 0)
@@ -155,23 +156,26 @@ int main(void)
     }
 
     /* ----------------- Calcular resíduo final e seus tempos ---------- */
-    rtime_t t_res = 0.0;
+    rtime_t t_op2 = 0.0;
     real_t res_norm = 0.0;
     {
         rtime_t t0 = timestamp();
         res_norm = residuo_l2(ASP, bsp, x, n); /* ||b - A x||2 */
-        t_res = timestamp() - t0;
+        t_op2 = timestamp() - t0;
     }
+
+    // --- NOVO: imprimir tempos médios das operações ---
+    rtime_t tempo_op1_medio = (iters > 0) ? (t_op1_total / (rtime_t)iters) : 0.0;
+    printf("N = %d\n", n);
+    printf("Tempo médio op1 (CG iteração): %.8g ms\n", tempo_op1_medio);
+    printf("Tempo op2 (resíduo): %.8g ms\n", t_op2);
 
     /* ----------------- Computar tempos exigidos na saída ------------- */
     rtime_t tempo_pc = t_spd + t_pc_setup;
     rtime_t tempo_iter = 0.0;
     if (iters > 0)
     {
-        rtime_t iter_total_aprox = t_solve - t_pc_setup;
-        if (iter_total_aprox < 0.0)
-            iter_total_aprox = 0.0;
-        tempo_iter = iter_total_aprox / (rtime_t)iters;
+        tempo_iter = t_op1_total / (rtime_t)iters;
     }
 
     /* ----------------- Saída no formato do enunciado ----------------- */
@@ -195,7 +199,7 @@ int main(void)
     printf("%.8g\n", tempo_iter);
 
     // Linha 7: tempo_residuo (ms)
-    printf("%.8g\n", t_res);
+    printf("%.8g\n", t_op2);
 
     // Liberação de memória
     free(A);
