@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Mede MFLOP/s (FLOPS_AVX) para v1 ou v2 nos N do enunciado (usando LIKWID Marker API).
+# Mede MFLOP/s usando LIKWID (FLOPS_DP e FLOPS_AVX) para v1 ou v2
+# nos N do enunciado e salva os resultados em arquivos de log.
+#
+# Uso:
+#   ./run_flops.sh v1
+#   ./run_flops.sh v2
 
 set -euo pipefail
 
@@ -25,34 +30,41 @@ VER_DIR="${ROOT}/${VER}"
 RESULTS_DIR="${VER_DIR}/results"
 mkdir -p "${RESULTS_DIR}"
 
-LOG_FILE="${RESULTS_DIR}/${VER}_FLOPS_AVX_flops.log"
+LOG_DP="${RESULTS_DIR}/${VER}_flops_dp.log"
+LOG_AVX="${RESULTS_DIR}/${VER}_flops_avx.log"
 
-echo "[${VER}] Compilando para grupo FLOPS_AVX..."
+# limpa logs antigos
+: > "${LOG_DP}"
+: > "${LOG_AVX}"
+
+echo "[${VER}] Compilando com LIKWID..."
 cd "${VER_DIR}"
-make clean
-USE_LIKWID=1 make
+make clean > /dev/null
+USE_LIKWID=1 make > /dev/null
 cd - > /dev/null
 
-if [[ ! -x "${VER_DIR}/cgSolver" ]]; then
-  echo "Erro: ${VER_DIR}/cgSolver não encontrado ou sem permissão de execução."
-  exit 2
-fi
-
-echo "[${VER}] Rodando testes de MFLOP/s (grupo FLOPS_AVX) com Marker API..."
-: > "${LOG_FILE}"
-
 for N in "${NS[@]}"; do
-  echo "### versao=${VER} grupo=FLOPS_AVX N=${N}" | tee -a "${LOG_FILE}"
-
-  (
-    cd "${VER_DIR}"
-    echo "Executando: likwid-perfctr -C 0 -g FLOPS_AVX -m ./cgSolver"
-    likwid-perfctr -C 0 -g FLOPS_AVX -m ./cgSolver <<EOF
+  echo "[${VER}] N=${N} (FLOPS_DP)"
+  echo "N=${N}" >> "${LOG_DP}"
+  if ! likwid-perfctr -C 0 -g FLOPS_DP -m "${VER_DIR}/cgSolver" <<EOF > >(grep -m1 "MFLOP/s" >> "${LOG_DP}") 2>/dev/null
 ${N} ${K} ${W} ${MAXIT} ${EPS}
 EOF
-  ) >> "${LOG_FILE}" 2>&1
+  then
+    echo "Erro ao medir FLOPS_DP para N=${N}" >> "${LOG_DP}"
+  fi
 
-  echo >> "${LOG_FILE}"
+  echo "[${VER}] N=${N} (FLOPS_AVX)"
+  echo "N=${N}" >> "${LOG_AVX}"
+  if ! likwid-perfctr -C 0 -g FLOPS_AVX -m "${VER_DIR}/cgSolver" <<EOF > >(grep -m1 "MFLOP/s" >> "${LOG_AVX}") 2>/dev/null
+${N} ${K} ${W} ${MAXIT} ${EPS}
+EOF
+  then
+    echo "Erro ao medir FLOPS_AVX para N=${N}" >> "${LOG_AVX}"
+  fi
 done
 
-echo "[${VER}] Concluído. Resultados em: ${LOG_FILE}"
+echo
+echo "[${VER}] Testes de FLOPS finalizados."
+echo "Logs salvos em:"
+echo "  - ${LOG_DP}"
+echo "  - ${LOG_AVX}"

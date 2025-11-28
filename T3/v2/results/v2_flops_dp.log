@@ -1,0 +1,24 @@
+N=32
+|      DP MFLOP/s      |    4322.9038 |
+N=64
+|      DP MFLOP/s      |    3022.8468 |
+N=128
+|      DP MFLOP/s      |    6594.6164 |
+N=256
+|      DP MFLOP/s      |    6969.1969 |
+N=512
+|      DP MFLOP/s      | 6538.5982 |
+N=1000
+|      DP MFLOP/s      | 6845.1289 |
+N=2000
+|      DP MFLOP/s      | 5671.8099 |
+N=4000
+|      DP MFLOP/s      | 1321.6492 |
+N=8000
+|      DP MFLOP/s      | 5248.9898 |
+N=9000
+|      DP MFLOP/s      | 4940.9631 |
+N=10000
+|      DP MFLOP/s      | 4784.8761 |
+N=20000
+|      DP MFLOP/s      | 4021.6966 |
