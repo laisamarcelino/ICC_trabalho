@@ -40,6 +40,13 @@ static int escolhe_precond(real_t w_in, pcg_precond_t *M_out, real_t *omega_out)
     return -1; // inválido
 }
 
+#ifdef LIKWID_PERFMON
+// Define o grupo de cache a ser usado (L2CACHE, L1CACHE, CACHE)
+#if LIKWID_PERFMON
+    #define CACHE_GROUP "L2CACHE"
+#endif
+#endif
+
 int main(void)
 {
 #ifdef LIKWID_PERFMON
@@ -133,14 +140,41 @@ int main(void)
     rtime_t t_op1_total = 0.0;
     int iters = -1;
     real_t norma_delta_x_inf = NAN;
+    double op1_cache_miss_ratio = -1.0;
 
     {
         // Setup para medir tempo de cada iteração
         rtime_t t0 = timestamp();
+        // REMOVA AS LINHAS ABAIXO:
+        // #ifdef LIKWID_PERFMON
+        // LIKWID_MARKER_START("op1");
+        // #endif
         // Chamar cg_solve modificado para rodar exatamente maxit iterações
         // e medir tempo total das iterações (op1)
         iters = cg_solve(&ASP, bsp, x, n, ASP.k, maxit, 0.0, M, omega, &norma_delta_x_inf);
         t_op1_total = timestamp() - t0;
+        // REMOVA AS LINHAS ABAIXO:
+        // #ifdef LIKWID_PERFMON
+        // LIKWID_MARKER_STOP("op1");
+        // ... coleta cache miss ratio ...
+        // #endif
+        // --- Coleta cache miss ratio para op1 ---
+        {
+            double miss = -1.0;
+            int nevents = 0;
+            double events[16] = {0}; // Ajuste o tamanho conforme o número de eventos do grupo
+            double time = 0.0;
+            int count = 0;
+#ifdef LIKWID_PERFMON
+            LIKWID_MARKER_GET("op1", &nevents, events, &time, &count);
+            // Tente pegar o índice típico do cache miss ratio para L2CACHE
+            if (nevents > 2)
+                miss = events[2];
+            else if (nevents > 0)
+                miss = events[nevents-1];
+#endif
+            op1_cache_miss_ratio = miss;
+        }
     }
 
     if (iters < 0)
@@ -155,6 +189,7 @@ int main(void)
     /* ----------------- Cálculo do resíduo final (op2) ----------------- */
     rtime_t t_op2 = 0.0;
     real_t res_norm = 0.0;
+    double op2_cache_miss_ratio = -1.0;
     {
         rtime_t t0 = timestamp();
 #ifdef LIKWID_PERFMON
@@ -163,6 +198,20 @@ int main(void)
         res_norm = residuo_l2_v2(&ASP, bsp, x);
 #ifdef LIKWID_PERFMON
         LIKWID_MARKER_STOP("op2");
+        // --- Coleta cache miss ratio para op2 ---
+        {
+            double miss = -1.0;
+            int nevents = 0;
+            double events[16] = {0};
+            double time = 0.0;
+            int count = 0;
+            LIKWID_MARKER_GET("op2", &nevents, events, &time, &count);
+            if (nevents > 2)
+                miss = events[2];
+            else if (nevents > 0)
+                miss = events[nevents-1];
+            op2_cache_miss_ratio = miss;
+        }
 #endif
         t_op2 = timestamp() - t0;
     }
@@ -173,7 +222,11 @@ int main(void)
     printf("N = %d\n", n);
     printf("Tempo médio op1 (CG iteração): %.8g ms\n", tempo_op1_medio);
     printf("Tempo op2 (resíduo): %.8g ms\n", t_op2);
-    
+#ifdef LIKWID_PERFMON
+    printf("Cache miss ratio op1: %.8g\n", op1_cache_miss_ratio);
+    printf("Cache miss ratio op2: %.8g\n", op2_cache_miss_ratio);
+#endif
+
     /* ----------------- Cálculo dos tempos de saída ----------------- */
     rtime_t tempo_iter = 0.0;
     if (iters > 0)
