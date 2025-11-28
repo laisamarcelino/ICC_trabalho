@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mede MFLOP/s (FLOPS_DP e FLOPS_AVX) para v1 ou v2 nos N do enunciado.
+# Mede MFLOP/s (FLOPS_AVX) para v1 ou v2 nos N do enunciado (usando LIKWID Marker API).
 
 set -euo pipefail
 
@@ -25,39 +25,32 @@ VER_DIR="${ROOT}/${VER}"
 RESULTS_DIR="${VER_DIR}/results"
 mkdir -p "${RESULTS_DIR}"
 
-# Tenta grupos em ordem de preferência
-GROUPS=("FLOPS_DP" "FLOPS_AVX" "FLOPS" "DP" "AVX")
-GROUP_FOUND=""
+LOG_FILE="${RESULTS_DIR}/${VER}_FLOPS_AVX_flops.log"
 
-for G in "${GROUPS[@]}"; do
-  if likwid-perfctr -g list | grep -q "$G"; then
-    GROUP_FOUND="$G"
-    break
-  fi
-done
-
-if [[ -z "$GROUP_FOUND" ]]; then
-  echo "Nenhum grupo FLOPS disponível no LIKWID para esta arquitetura."
-  exit 2
-fi
-
-LOG_FILE="${RESULTS_DIR}/${VER}_${GROUP_FOUND}_flops.log"
-echo "[${VER}] Usando grupo: ${GROUP_FOUND}"
-
+echo "[${VER}] Compilando para grupo FLOPS_AVX..."
 cd "${VER_DIR}"
 make clean
 USE_LIKWID=1 make
 cd - > /dev/null
 
-echo "[${VER}] Rodando testes de MFLOP/s (grupo ${GROUP_FOUND})..."
+if [[ ! -x "${VER_DIR}/cgSolver" ]]; then
+  echo "Erro: ${VER_DIR}/cgSolver não encontrado ou sem permissão de execução."
+  exit 2
+fi
+
+echo "[${VER}] Rodando testes de MFLOP/s (grupo FLOPS_AVX) com Marker API..."
 : > "${LOG_FILE}"
 
 for N in "${NS[@]}"; do
-  echo "### versao=${VER} grupo=${GROUP_FOUND} N=${N}" | tee -a "${LOG_FILE}"
+  echo "### versao=${VER} grupo=FLOPS_AVX N=${N}" | tee -a "${LOG_FILE}"
 
-  likwid-perfctr -C 0 -g "${GROUP_FOUND}" -m ./cgSolver <<EOF >> "${LOG_FILE}"
+  (
+    cd "${VER_DIR}"
+    echo "Executando: likwid-perfctr -C 0 -g FLOPS_AVX -m ./cgSolver"
+    likwid-perfctr -C 0 -g FLOPS_AVX -m ./cgSolver <<EOF
 ${N} ${K} ${W} ${MAXIT} ${EPS}
 EOF
+  ) >> "${LOG_FILE}" 2>&1
 
   echo >> "${LOG_FILE}"
 done
