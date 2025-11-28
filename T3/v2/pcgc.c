@@ -4,6 +4,10 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef LIKWID_PERFMON
+#include <likwid.h>
+#endif
+
 #include "pcgc.h"
 
 /* ------------------------ Setup do pré-condicionador ------------------------ */
@@ -188,34 +192,21 @@ int cg_solve(const matdiag_t *A, const real_t *b, real_t *x,
         return -1;
     }
 
-    // Se o chamador pediu a norma, faz a inicialização
-    if (norma_delta_x_inf_out)
-        *norma_delta_x_inf_out = NAN;
-    real_t dx_last = NAN; // guardaremos a ÚLTIMA ||Δx||∞ (norma) medida
+    /* contexto do pré-condicionador (Jacobi / GS / SSOR) */
+    pcg_contexto_t pc;
+    memset(&pc, 0, sizeof(pc));
 
-    /* ---------- (PREP) Setup genérico do pré-condicionador ---------- */
-    pcg_contexto_t pc = {0};
-    int rc = pcg_setup(A, n, M, omega, &pc);
-    if (rc != 0)
+    if (M != PCG_PRECOND_NONE)
     {
-        fprintf(stderr, "[pcg] falha no setup (rc=%d)\n", rc);
-        pcg_free(&pc);
-        free(r);
-        free(v);
-        free(z);
-        return rc;
+        pcg_setup(A, n, M, omega, &pc);
     }
 
-    /* ------------------------------------------------------------------
-    [linha 1]  x^(0) = 0,  r = b,  aux = r^T r,  v = b
-    ------------------------------------------------------------------ */
-    memset(x, 0, (size_t)n * sizeof(real_t)); /* x^(0) = 0 */
-    vet_copy(n, b, r);                        /* r = b     */
+    /* r = b - A x inicial */
+    matvet_diagonais(A, x, r);  /* r = A x */
+    for (int i = 0; i < n; ++i) /* r = b - r */
+        r[i] = b[i] - r[i];
 
-    /* aux armazena:
-     *  - CG puro:     aux = r^T r
-     *  - PCG (geral): aux = r^T y   (y = M⁻¹ r)
-     */
+    /* inicialização específica de CG puro ou PCG */
     real_t aux = 0.0;
 
     if (M == PCG_PRECOND_NONE)
@@ -233,9 +224,25 @@ int cg_solve(const matdiag_t *A, const real_t *b, real_t *x,
     // Constante para proteger divisões por 0 ao calcular m = aux1/aux
     const real_t eps_den = 1e-30;
 
+#ifdef LIKWID_PERFMON
+    LIKWID_MARKER_START("op1");
+#endif
+
     /* ------------------------------------------------------------------
-    [linha 2]  Para k = 0 : max, faça
-    ------------------------------------------------------------------ */
+     *  OP1: iteração do método de Gradientes Conjugados (CG/PCG)
+     *
+     *  Quando M = PCG_PRECOND_JACOBI (ω = 0), este laço implementa:
+     *    - Aplicação do pré-condicionador Jacobi:   y = D⁻¹ r
+     *    - Atualização da direção conjugada:        v = y + m v
+     *    - Produto matriz-vetor esparso:            z = A v
+     *    - Atualização da solução:                  x = x + s v
+     *    - Atualização do resíduo:                  r = r − s z
+     *
+     *  É EXATAMENTE esta região que será medida como “op1”
+     *  (tempo, banda de memória, cache miss, MFLOP/s) no Trabalho 2.
+     * ------------------------------------------------------------------ */
+    real_t dx_last = 0.0;
+
     for (int it = 0; it < maxit; ++it)
     {
         // [linha 3]  z = A v   (multiplicação matriz × vetor)
@@ -257,6 +264,9 @@ int cg_solve(const matdiag_t *A, const real_t *b, real_t *x,
                 free(r);
                 free(v);
                 free(z);
+#ifdef LIKWID_PERFMON
+                LIKWID_MARKER_STOP("op1");
+#endif
                 return it; // converge sem atualizar x nesta iteração
             }
             fprintf(stderr, "[cg/pcg] v^T z ~ 0 (divisao instavel)\n");
@@ -290,6 +300,9 @@ int cg_solve(const matdiag_t *A, const real_t *b, real_t *x,
             free(r);
             free(v);
             free(z);
+#ifdef LIKWID_PERFMON
+            LIKWID_MARKER_STOP("op1");
+#endif
             return it + 1;
         }
 
@@ -307,22 +320,33 @@ int cg_solve(const matdiag_t *A, const real_t *b, real_t *x,
         */
         if (M == PCG_PRECOND_NONE)
         {
-            real_t aux1 = vet_produto(n, r, r);                      // [linha 7]  aux1 = r^T r
-            real_t m = aux1 / (fabs(aux) < eps_den ? eps_den : aux); // [10]
+            real_t aux1 = vet_produto(n, r, r);
+            real_t m = 0.0;
+
+            if (fabs(aux) > eps_den)
+                m = aux1 / aux;
+
             aux = aux1;
-            for (int i = 0; i < n; ++i) // [11]
+            for (int i = 0; i < n; ++i)
                 v[i] = r[i] + m * v[i];
         }
         else
         {
-            pcg_apply(A, n, k, &pc, r, pc.y);                        // [linha 7]  y = M⁻¹ r
-            real_t aux1 = vet_produto(n, r, pc.y);                   // [linha 8]  aux1 = r^T y
-            real_t m = aux1 / (fabs(aux) < eps_den ? eps_den : aux); // [10]
+            pcg_apply(A, n, k, &pc, r, pc.y); // y = M⁻¹ r
+            real_t aux1 = vet_produto(n, r, pc.y);
+            real_t m = 0.0;
+
+            if (fabs(aux) > eps_den)
+                m = aux1 / aux;
+
             aux = aux1;
-            for (int i = 0; i < n; ++i) // [11]
+            for (int i = 0; i < n; ++i)
                 v[i] = pc.y[i] + m * v[i];
         }
     }
+#ifdef LIKWID_PERFMON
+    LIKWID_MARKER_STOP("op1");
+#endif
 
     // atingiu limite de iterações sem satisfazer ||Δx||_∞
     if (norma_delta_x_inf_out)

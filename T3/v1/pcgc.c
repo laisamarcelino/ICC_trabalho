@@ -1,9 +1,13 @@
 /* Método dos Gradientes Conjugados */
 
 #include <string.h>
-#include <math.h> 
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef LIKWID_PERFMON
+#include <likwid.h>
+#endif
+
 #include "pcgc.h"
 
 /* ------------------------ Setup do pré-condicionador ------------------------ */
@@ -16,7 +20,7 @@ int pcg_setup(const real_t *A, int n, int k, pcg_precond_t M, real_t omega, pcg_
 
     // SGS: força ω=1.0
     // SSOR: exige 0<ω<2 (do enunciado e teoria)
-    
+
     // Se é Gauss-Seidel, é forçado ω = 1.0
     if (M == PCG_PRECOND_SGS)
     {
@@ -42,7 +46,7 @@ int pcg_setup(const real_t *A, int n, int k, pcg_precond_t M, real_t omega, pcg_
 
     if (M == PCG_PRECOND_NONE)
         return 0;
-    
+
     // y serve para armazenar M⁻¹r de qualquer PC
     contexto->y = (real_t *)calloc((size_t)n, sizeof(real_t));
     if (!contexto->y)
@@ -99,7 +103,7 @@ void pcg_apply(const real_t *A, int n, int k, const pcg_contexto_t *contexto, co
     case PCG_PRECOND_JACOBI:
         aplica_jacobi(n, contexto->invD, r, y);
         break;
-    
+
     // Nos dois métodos abaixo, não transformamos M explicitamente
     // Caso for GS, faz varreduras progressiva e regressiva:
     // (D + L) t = r
@@ -107,7 +111,7 @@ void pcg_apply(const real_t *A, int n, int k, const pcg_contexto_t *contexto, co
     // (D + U) y = D t
 
     // Caso for SSOR, faz varreduras progressiva e regressiva (M_ω = (D + ωL) D⁻¹ (D + ωU)):
-    // (D/ω + L) t = r 
+    // (D/ω + L) t = r
     // u = D t
     // (D/ω + U) y = u
 
@@ -208,28 +212,32 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
 
     if (M == PCG_PRECOND_NONE)
     {
-        aux = vet_produto(n, r, r); // CG puro: aux = r^T r 
-        vet_copy(n, r, v);          // v = r                
+        aux = vet_produto(n, r, r); // CG puro: aux = r^T r
+        vet_copy(n, r, v);          // v = r
     }
     else
     {
-        pcg_apply(A, n, k, &pc, r, pc.y); // PCG: y = M⁻¹ r 
-        aux = vet_produto(n, r, pc.y);    // PCG: aux = r^T y  
-        vet_copy(n, pc.y, v);             // PCG: v = y        
+        pcg_apply(A, n, k, &pc, r, pc.y); // PCG: y = M⁻¹ r
+        aux = vet_produto(n, r, pc.y);    // PCG: aux = r^T y
+        vet_copy(n, pc.y, v);             // PCG: v = y
     }
 
-    // Constante para proteger divisões por 0 ao calcular m = aux1/aux 
+    // Constante para proteger divisões por 0 ao calcular m = aux1/aux
     const real_t eps_den = 1e-30;
 
-    /* ------------------------------------------------------------------
-    [linha 2]  Para k = 0 : max, faça
-    ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------
+[linha 2]  Para k = 0 : max, faça
+------------------------------------------------------------------ */
+#ifdef LIKWID_PERFMON
+    // op1: laço de iteração do (P)CG (inclui matvec, update de x, r, v)
+    LIKWID_MARKER_START("op1");
+#endif
     for (int it = 0; it < maxit; ++it)
     {
         // [linha 3]  z = A v   (multiplicação matriz × vetor)
         matvet_densa(A, v, z, n);
 
-        // [linha 4]  s = aux / (v^T z) 
+        // [linha 4]  s = aux / (v^T z)
         real_t vTz = vet_produto(n, v, z);
 
         // robustez numérica: se denom ~0 e “energia” do resíduo já é pequena, finalize
@@ -241,6 +249,9 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
             {
                 if (norma_delta_x_inf_out)
                     *norma_delta_x_inf_out = dx_last; // última Δx∞ conhecida
+#ifdef LIKWID_PERFMON
+                LIKWID_MARKER_STOP("op1");
+#endif
                 pcg_free(&pc);
                 free(r);
                 free(v);
@@ -274,6 +285,9 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
         {
             if (norma_delta_x_inf_out)
                 *norma_delta_x_inf_out = dx_max; // devolve a Δx∞ final exata
+#ifdef LIKWID_PERFMON
+            LIKWID_MARKER_STOP("op1");
+#endif
             pcg_free(&pc);
             free(r);
             free(v);
@@ -297,8 +311,8 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
         {
             real_t aux1 = vet_produto(n, r, r);                      // [linha 7]  aux1 = r^T r
             real_t m = aux1 / (fabs(aux) < eps_den ? eps_den : aux); // [10]
-            aux = aux1;                                                   
-            for (int i = 0; i < n; ++i)                              // [11]
+            aux = aux1;
+            for (int i = 0; i < n; ++i) // [11]
                 v[i] = r[i] + m * v[i];
         }
         else
@@ -306,12 +320,14 @@ int cg_solve(const real_t *A, const real_t *b, real_t *x,
             pcg_apply(A, n, k, &pc, r, pc.y);                        // [linha 7]  y = M⁻¹ r
             real_t aux1 = vet_produto(n, r, pc.y);                   // [linha 8]  aux1 = r^T y
             real_t m = aux1 / (fabs(aux) < eps_den ? eps_den : aux); // [10]
-            aux = aux1;                                                  
-            for (int i = 0; i < n; ++i)                              // [11]
+            aux = aux1;
+            for (int i = 0; i < n; ++i) // [11]
                 v[i] = pc.y[i] + m * v[i];
         }
     }
-
+#ifdef LIKWID_PERFMON
+    LIKWID_MARKER_STOP("op1");
+#endif
     // atingiu limite de iterações sem satisfazer ||Δx||_∞
     if (norma_delta_x_inf_out)
         *norma_delta_x_inf_out = dx_last; // reporta a última norma medida

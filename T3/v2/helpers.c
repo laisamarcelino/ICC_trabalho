@@ -218,9 +218,11 @@ void matvet_diagonais(const matdiag_t *A, const real_t *x, real_t *y)
 {
     int n = A->n, k = A->k;
 
+    // zera y
     for (int i = 0; i < n; ++i)
         y[i] = 0.0;
 
+    // percorre cada diagonal
     for (int d = 0; d < k; ++d)
     {
         int offset = A->offsets[d];
@@ -243,8 +245,24 @@ void matvet_diagonais(const matdiag_t *A, const real_t *x, real_t *y)
     }
 }
 
+
 /* ---------- Calculo do Resíduo ---------- */
 
+/* ----------------------------------------------------------------------
+ * OP2: cálculo do resíduo R = b - A x e da sua norma L2.
+ *
+ *   Entrada:
+ *     - A : matriz k-diagonal (matdiag_t)
+ *     - b : vetor lado direito
+ *     - x : vetor solução aproximada
+ *
+ *   Passos:
+ *     1) Ax = A x   (usando matvet_diagonais, estrutura esparsa k-diagonal)
+ *     2) r  = b - Ax
+ *     3) retorna ||r||_2 = sqrt( Σ_i r_i^2 )
+ *
+ *   Esta função representa a “operação 2” (op2) medida no Trabalho 2.
+ * ---------------------------------------------------------------------- */
 real_t residuo_l2_v2(const matdiag_t *A, const real_t *b, const real_t *x)
 {
     if (!A || !b || !x)
@@ -255,11 +273,13 @@ real_t residuo_l2_v2(const matdiag_t *A, const real_t *b, const real_t *x)
     if (!Ax)
         return NAN;
 
+    // Ax = A x, usando apenas as diagonais não nulas
     matvet_diagonais(A, x, Ax);
 
     real_t s2 = 0.0;
     int i = 0;
 
+    // Unroll de 4 elementos no cálculo de r e ||r||_2
     for (; i <= n - 4; i += 4)
     {
         real_t r0 = b[i]     - Ax[i];
@@ -279,6 +299,7 @@ real_t residuo_l2_v2(const matdiag_t *A, const real_t *b, const real_t *x)
     free(Ax);
     return sqrt(s2);
 }
+
 
 int extrai_diag_e_invD_diag(const matdiag_t *A, real_t *D, real_t *invD, real_t eps)
 {

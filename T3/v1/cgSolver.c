@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#ifdef LIKWID_PERFMON
+#include <likwid.h>
+#endif
 #include "sislin.h"
 #include "pcgc.h"
 #include "utils.h"
@@ -10,25 +13,25 @@
 static int escolhe_precond(real_t w_in, pcg_precond_t *M_out, real_t *omega_out)
 {
     if (w_in == -1.0)
-    { // sem pré-condicionador 
+    { // sem pré-condicionador
         *M_out = PCG_PRECOND_NONE;
         *omega_out = 0.0;
         return 0;
     }
     if (w_in == 0.0)
-    { // Jacobi 
+    { // Jacobi
         *M_out = PCG_PRECOND_JACOBI;
         *omega_out = 0.0;
         return 0;
     }
     if (w_in == 1.0)
-    { // Gauss-Seidel 
+    { // Gauss-Seidel
         *M_out = PCG_PRECOND_SGS;
         *omega_out = 1.0;
         return 0;
     }
     if (w_in > 1.0 && w_in < 2.0)
-    { // SSOR 
+    { // SSOR
         *M_out = PCG_PRECOND_SSOR;
         *omega_out = w_in; // manter ω (0<ω<2)
         return 0;
@@ -38,6 +41,9 @@ static int escolhe_precond(real_t w_in, pcg_precond_t *M_out, real_t *omega_out)
 
 int main(void)
 {
+#ifdef LIKWID_PERFMON
+    LIKWID_MARKER_INIT;
+#endif
     int n, k, maxit;
     real_t w, eps;
 
@@ -160,7 +166,14 @@ int main(void)
     real_t res_norm = 0.0;
     {
         rtime_t t0 = timestamp();
+#ifdef LIKWID_PERFMON
+        // op2: cálculo de R = b - A x e norma L2 do resíduo
+        LIKWID_MARKER_START("op2");
+#endif
         res_norm = residuo_l2(ASP, bsp, x, n); /* ||b - A x||2 */
+#ifdef LIKWID_PERFMON
+        LIKWID_MARKER_STOP("op2");
+#endif
         t_op2 = timestamp() - t0;
     }
 
@@ -207,5 +220,8 @@ int main(void)
     free(ASP);
     free(bsp);
     free(x);
+#ifdef LIKWID_PERFMON
+    LIKWID_MARKER_CLOSE;
+#endif
     return 0;
 }

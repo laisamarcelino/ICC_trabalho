@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#ifdef LIKWID_PERFMON
+#include <likwid.h>
+#endif
+
 #include "sislin.h"
 #include "pcgc.h"
 #include "utils.h"
@@ -10,25 +14,25 @@
 static int escolhe_precond(real_t w_in, pcg_precond_t *M_out, real_t *omega_out)
 {
     if (w_in == -1.0)
-    { // sem pré-condicionador 
+    { // sem pré-condicionador
         *M_out = PCG_PRECOND_NONE;
         *omega_out = 0.0;
         return 0;
     }
     if (w_in == 0.0)
-    { // Jacobi 
+    { // Jacobi
         *M_out = PCG_PRECOND_JACOBI;
         *omega_out = 0.0;
         return 0;
     }
     if (w_in == 1.0)
-    { // Gauss-Seidel 
+    { // Gauss-Seidel
         *M_out = PCG_PRECOND_SGS;
         *omega_out = 1.0;
         return 0;
     }
     if (w_in > 1.0 && w_in < 2.0)
-    { // SSOR 
+    { // SSOR
         *M_out = PCG_PRECOND_SSOR;
         *omega_out = w_in; // manter ω (0<ω<2)
         return 0;
@@ -38,6 +42,9 @@ static int escolhe_precond(real_t w_in, pcg_precond_t *M_out, real_t *omega_out)
 
 int main(void)
 {
+#ifdef LIKWID_PERFMON
+    LIKWID_MARKER_INIT;
+#endif
     int n, k, maxit;
     real_t w, eps;
 
@@ -150,7 +157,13 @@ int main(void)
     real_t res_norm = 0.0;
     {
         rtime_t t0 = timestamp();
+#ifdef LIKWID_PERFMON
+        LIKWID_MARKER_START("op2");
+#endif
         res_norm = residuo_l2_v2(&ASP, bsp, x);
+#ifdef LIKWID_PERFMON
+        LIKWID_MARKER_STOP("op2");
+#endif
         t_op2 = timestamp() - t0;
     }
 
@@ -160,7 +173,7 @@ int main(void)
     printf("N = %d\n", n);
     printf("Tempo médio op1 (CG iteração): %.8g ms\n", tempo_op1_medio);
     printf("Tempo op2 (resíduo): %.8g ms\n", t_op2);
-
+    
     /* ----------------- Cálculo dos tempos de saída ----------------- */
     rtime_t tempo_iter = 0.0;
     if (iters > 0)
@@ -169,22 +182,39 @@ int main(void)
     }
     else
     {
-        tempo_iter = 0.0; /* [FIX-03] evita divisão por zero quando converge em 0 iterações */
+        tempo_iter = 0.0;
     }
 
-    /* ----------------- Saída final ----------------- */
+    /* ----------------- Saída final -----------------
+     * Formato:
+     *   n
+     *   x[0] ... x[n-1]
+     *   ||Δx||_∞ (última iteração)
+     *   ||r||_2  (OP2)
+     *   t_spd + t_pc_setup     (geração SPD + setup pré-condicionador)
+     *   tempo_iter             (tempo médio por iteração da OP1)
+     *   t_res                  (tempo de OP2: residuo_l2_v2)
+     * ------------------------------------------------ */
     printf("%d\n", n);
     for (int i = 0; i < n; ++i)
         printf("%.16g%s", x[i], (i + 1 < n ? " " : "\n"));
     printf("%.8g\n", norma_delta_x_inf);
     printf("%.8g\n", res_norm);
     printf("%.8g\n", t_spd + t_pc_setup);
+<<<<<<< HEAD
     printf("%.8g\n", tempo_iter); /* [FIX-02] usa valor calculado e válido */
     printf("%.8g\n", t_op2);
+=======
+    printf("%.8g\n", tempo_iter);
+    printf("%.8g\n", t_res);
+>>>>>>> laisa
 
     /* ----------------- Liberação de memória ----------------- */
     liberaMatDiag(&ASP);
     free(bsp);
     free(x);
+#ifdef LIKWID_PERFMON
+    LIKWID_MARKER_CLOSE;
+#endif
     return 0;
 }

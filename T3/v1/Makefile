@@ -1,7 +1,7 @@
 # Compilador e flags
 CC = gcc
-CFLAGS = -O3 -march=native -mavx -fopt-info-vec
-LFLAGS = -lm # -llikwid
+CFLAGS = -O3 -march=native -mavx -fopt-info-vec -DLIKWID_PERFMON -I$(LIKWID_INCLUDE)
+LFLAGS = -lm -L$(LIKWID_LIB) -llikwid # -llikwid
 
 # Nome do executável e arquivos do projeto
 PROG = cgSolver
