@@ -201,13 +201,8 @@ int main(void)
     printf("%.8g\n", norma_delta_x_inf);
     printf("%.8g\n", res_norm);
     printf("%.8g\n", t_spd + t_pc_setup);
-<<<<<<< HEAD
     printf("%.8g\n", tempo_iter); /* [FIX-02] usa valor calculado e válido */
     printf("%.8g\n", t_op2);
-=======
-    printf("%.8g\n", tempo_iter);
-    printf("%.8g\n", t_res);
->>>>>>> laisa
 
     /* ----------------- Liberação de memória ----------------- */
     liberaMatDiag(&ASP);
