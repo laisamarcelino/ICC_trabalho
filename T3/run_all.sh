@@ -87,7 +87,7 @@ done
 # 4) Testes de FLOPS (FLOPS_DP)
 # ================================
 echo "[${VER}] Rodando testes de FLOPS_DP..."
-LOG_DP="${RESULTS_DIR}/${VER}_flops.log"
+LOG_DP="${RESULTS_DIR}/${VER}_flops_dp.log"
 : > "$LOG_DP"
 
 for N in "${NS[@]}"; do
@@ -105,9 +105,33 @@ EOF
     }
 done
 
+# ================================
+# 5) Testes de FLOPS_AVX
+# ================================
+# Adicionado para medir FLOPS_AVX com LIKWID
+echo "[${VER}] Rodando testes de FLOPS_AVX..."
+LOG_AVX="${RESULTS_DIR}/${VER}_flops_avx.log"
+: > "$LOG_AVX"
+
+for N in "${NS[@]}"; do
+    echo "[${VER}] N=${N} (FLOPS_AVX)"  # Informativo no terminal
+    {
+        echo
+        echo "=============================="
+        echo "N=${N}"
+        echo "=============================="
+        likwid-perfctr -C 0 -g FLOPS_AVX -m "$EXEC" <<EOF
+${N} ${K} ${W} ${MAXIT} ${EPS}
+EOF
+    } >> "$LOG_AVX" 2>&1 || {
+        echo "Erro ao medir FLOPS_AVX para N=${N}" >> "$LOG_AVX"
+    }
+done
+
 echo "[${VER}] Todos os testes finalizados."
 echo "Resultados:"
 echo " - Timestamp: $OUT_TS"
 echo " - Memória (L3): $LOG_MEM"
 echo " - Cache miss (L2CACHE): $LOG_CM"
 echo " - FLOPS_DP: $LOG_DP"
+echo " - FLOPS_AVX: $LOG_AVX"
