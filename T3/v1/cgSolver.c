@@ -166,14 +166,7 @@ int main(void)
     real_t res_norm = 0.0;
     {
         rtime_t t0 = timestamp();
-#ifdef LIKWID_PERFMON
-        // op2: cálculo de R = b - A x e norma L2 do resíduo
-        LIKWID_MARKER_START("op2");
-#endif
         res_norm = residuo_l2(ASP, bsp, x, n); /* ||b - A x||2 */
-#ifdef LIKWID_PERFMON
-        LIKWID_MARKER_STOP("op2");
-#endif
         t_op2 = timestamp() - t0;
     }
 
@@ -192,27 +185,27 @@ int main(void)
     }
 
     /* ----------------- Saída no formato do enunciado ----------------- */
-    // Linha 1: n
-    printf("%d\n", n);
+    //Linha 1: n
+    //printf("%d\n", n);
 
-    // Linha 2: x_1 x_2 ... x_n (com precisão pedida)
-    for (int i = 0; i < n; ++i)
-        printf("%.16g%s", x[i], (i + 1 < n ? " " : "\n"));
+    //Linha 2: x_1 x_2 ... x_n (com precisão pedida)
+    //for (int i = 0; i < n; ++i)
+    //    printf("%.16g%s", x[i], (i + 1 < n ? " " : "\n"));
 
-    // Linha 3: norma (||Δx||_∞ na última iteração) — agora valor EXATO devolvido pelo solver
-    printf("%.8g\n", norma_delta_x_inf);
+    //Linha 3: norma (||Δx||_∞ na última iteração) — agora valor EXATO devolvido pelo solver
+    //printf("%.8g\n", norma_delta_x_inf);
 
-    // Linha 4: residuo = ||r||2 = ||b - A x||2
-    printf("%.8g\n", res_norm);
+    //Linha 4: residuo = ||r||2 = ||b - A x||2
+    //printf("%.8g\n", res_norm);
 
-    // Linha 5: tempo_pc (ms) = preparar SL + setup PC
-    printf("%.8g\n", tempo_pc);
+    //Linha 5: tempo_pc (ms) = preparar SL + setup PC
+    //printf("%.8g\n", tempo_pc);
 
-    // Linha 6: tempo_iter (ms) = tempo médio por iteração (aprox)
-    printf("%.8g\n", tempo_iter);
+    //Linha 6: tempo_iter (ms) = tempo médio por iteração (aprox)
+    //printf("%.8g\n", tempo_iter);
 
-    // Linha 7: tempo_residuo (ms)
-    printf("%.8g\n", t_op2);
+    //Linha 7: tempo_residuo (ms)
+    //printf("%.8g\n", t_op2);
 
     // Liberação de memória
     free(A);
