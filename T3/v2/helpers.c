@@ -1,3 +1,6 @@
+#ifdef LIKWID_PERFMON
+#include <likwid.h>
+#endif
 #include "helpers.h"
 
 /* ---------- Operações vetoriais básicas ---------- */
@@ -268,28 +271,27 @@ real_t residuo_l2_v2(const matdiag_t *A, const real_t *b, const real_t *x)
     if (!A || !b || !x)
         return NAN;
 
+#ifdef LIKWID_PERFMON
+    LIKWID_MARKER_START("op2");
+#endif
+
     int n = A->n;
     real_t *Ax = (real_t *)calloc((size_t)n, sizeof(real_t));
     if (!Ax)
         return NAN;
 
-    // Ax = A x, usando apenas as diagonais não nulas
     matvet_diagonais(A, x, Ax);
 
     real_t s2 = 0.0;
     int i = 0;
-
-    // Unroll de 4 elementos no cálculo de r e ||r||_2
     for (; i <= n - 4; i += 4)
     {
-        real_t r0 = b[i]     - Ax[i];
+        real_t r0 = b[i] - Ax[i];
         real_t r1 = b[i + 1] - Ax[i + 1];
         real_t r2 = b[i + 2] - Ax[i + 2];
         real_t r3 = b[i + 3] - Ax[i + 3];
-
         s2 += r0 * r0 + r1 * r1 + r2 * r2 + r3 * r3;
     }
-
     for (; i < n; ++i)
     {
         real_t ri = b[i] - Ax[i];
@@ -297,9 +299,14 @@ real_t residuo_l2_v2(const matdiag_t *A, const real_t *b, const real_t *x)
     }
 
     free(Ax);
-    return sqrt(s2);
-}
+    real_t norm = sqrt(s2);
 
+#ifdef LIKWID_PERFMON
+    LIKWID_MARKER_STOP("op2");
+#endif
+
+    return norm;
+}
 
 int extrai_diag_e_invD_diag(const matdiag_t *A, real_t *D, real_t *invD, real_t eps)
 {
