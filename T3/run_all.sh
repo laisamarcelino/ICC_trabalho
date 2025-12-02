@@ -41,17 +41,8 @@ EXEC="${VER_DIR}/cgSolver"
 # ================================
 # 1) Testes de timestamp
 # ================================
-echo "[${VER}] Rodando testes de tempo (timestamp)..."
-OUT_TS="${RESULTS_DIR}/${VER}_timestamps.csv"
-echo "N,tempo_op1_ms,tempo_op2_ms" > "$OUT_TS"
 
-for N in "${NS[@]}"; do
-    OUTPUT=$(echo -e "$N\n$K\n$W\n$MAXIT\n$EPS" | "$EXEC")
-    TEMPO_OP1=$(echo "$OUTPUT" | grep "Tempo médio op1" | awk '{print $(NF-1)}')
-    TEMPO_OP2=$(echo "$OUTPUT" | grep "Tempo op2" | awk '{print $(NF-1)}')
-    echo "$N,$TEMPO_OP1,$TEMPO_OP2" >> "$OUT_TS"
-    echo "Timestamp: N=$N concluído."
-done
+
 
 # ================================
 # 2) Testes de memória (L3)
