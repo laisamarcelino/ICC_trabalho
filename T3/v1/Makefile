@@ -11,7 +11,7 @@ SRCS = $(addsuffix .c, $(MODULES)) $(addsuffix .h, $(MODULES))
 
 # Arquivos para empacotamento
 DISTFILES = *.c *.h Makefile LEIAME
-DISTDIR = lmsr21-rrk24
+DISTDIR = lmsr24-rrk24
 
 .PHONY: all clean purge dist debug
 
