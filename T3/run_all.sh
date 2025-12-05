@@ -17,8 +17,8 @@ if [[ "$VER" != "v1" && "$VER" != "v2" ]]; then
 fi
 
 # Lista de tamanhos de matriz
-#NS=(32 64 128 256)
-NS=(32 64 128 256 512 1000 2000 4000 8000 9000 10000)
+NS=(32 64 128 256)
+#NS=(32 64 128 256 512 1000 2000 4000 8000 9000 10000)
 K=7
 W=0
 MAXIT=25
@@ -47,9 +47,19 @@ OUT_TS="${RESULTS_DIR}/${VER}_timestamps.csv"
 echo "N,tempo_op1_ms,tempo_op2_ms" > "$OUT_TS"
 
 for N in "${NS[@]}"; do
-    OUTPUT=$(echo -e "$N\n$K\n$W\n$MAXIT\n$EPS" | "$EXEC")
-    TEMPO_OP1=$(echo "$OUTPUT" | grep "Tempo médio op1" | awk '{print $(NF-1)}')
-    TEMPO_OP2=$(echo "$OUTPUT" | grep "Tempo op2" | awk '{print $(NF-1)}')
+    # Executa o binário redirecionando stderr (suprime aviso do LIKWID Marker API)
+    OUTPUT=$(echo -e "$N\n$K\n$W\n$MAXIT\n$EPS" | "$EXEC" 2>/dev/null)
+    # A versão atual do executável imprime apenas valores numéricos nas linhas:
+    # 1: N
+    # 2: x_1 x_2 ... x_n
+    # 3: norma_delta_x_inf
+    # 4: res_norm
+    # 5: tempo_pc
+    # 6: tempo_op1_medio
+    # 7: tempo_op2
+    # Extrai as linhas 6 e 7 para obter os tempos desejados.
+    TEMPO_OP1=$(echo "$OUTPUT" | sed -n '6p')
+    TEMPO_OP2=$(echo "$OUTPUT" | sed -n '7p')
     echo "$N,$TEMPO_OP1,$TEMPO_OP2" >> "$OUT_TS"
     echo "Timestamp: N=$N concluído."
 done
