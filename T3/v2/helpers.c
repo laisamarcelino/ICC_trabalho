@@ -91,39 +91,6 @@ void vet_escala(int n, real_t alpha, real_t *x)
         x[i] *= alpha;
 }
 
-/* ---------- Matriz densa ---------- */
-
-// Multiplica matriz densa A (n×n) por vetor x: y = A*x
-void matvet_densa(const real_t *A, const real_t *x, real_t *y, int n)
-{
-    for (int i = 0; i < n; ++i)
-    {
-        real_t s = 0.0;
-        const real_t *Ai = &A[(size_t)i * (size_t)n]; /* linha i de A */
-        for (int j = 0; j < n; ++j)
-            s += Ai[j] * x[j];
-        y[i] = s;
-    }
-}
-
-/* ---------- PC de Jacobi ---------- */
-
-// Extrai diagonal e seu inverso (checando zeros)
-int extrai_diag_e_invD(const real_t *A, int n, int k, real_t *D,
-                       real_t *invD, real_t eps)
-{
-    (void)k;
-    for (int i = 0; i < n; ++i)
-    {
-        real_t d = A[IDX(i, i, n)];
-        D[i] = d;
-        if (fabs(d) < eps)
-            return 1;
-        invD[i] = 1.0 / d;
-    }
-    return 0;
-}
-
 // Aplica Jacobi: y = D⁻¹ r
 void aplica_jacobi(int n, const real_t *invD, const real_t *r, real_t *y)
 {
@@ -217,6 +184,7 @@ void varredura_regressiva_DU(const matdiag_t *A, int n, int k,
     }
 }
 
+// Multiplica matriz k-diagonal A por vetor x, armazenando o resultado em y
 void matvet_diagonais(const matdiag_t *A, const real_t *x, real_t *y)
 {
     int n = A->n, k = A->k;
@@ -308,9 +276,11 @@ real_t residuo_l2_v2(const matdiag_t *A, const real_t *b, const real_t *x)
     return norm;
 }
 
+// Extrai a diagonal principal de A para D e calcula invD
 int extrai_diag_e_invD_diag(const matdiag_t *A, real_t *D, real_t *invD, real_t eps)
 {
     int pos_diag_principal = -1;
+
     for (int d = 0; d < A->k; ++d)
         if (A->offsets[d] == 0)
             pos_diag_principal = d;
@@ -332,6 +302,7 @@ int extrai_diag_e_invD_diag(const matdiag_t *A, real_t *D, real_t *invD, real_t 
     return 0;
 }
 
+// Libera memória alocada para a estrutura matdiag_t
 void liberaMatDiag(matdiag_t *A)
 {
     for (int d = 0; d < A->k; ++d)

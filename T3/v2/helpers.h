@@ -20,20 +20,11 @@ void vet_preenche(int n, real_t val, real_t *x);
 void vet_axpy(int n, real_t alpha, const real_t *x, real_t *y);
 void vet_escala(int n, real_t alpha, real_t *x);
 
-/* ---------- Mat-vec (densa) ---------- */
-
-// Multiplica matriz densa A (n×n) por vetor x: y = A*x
-void matvet_densa(const real_t *A, const real_t *x, real_t *y, int n);
-
 /* ---------- Mat-vec (diagonal) ---------- */
-
 
 void matvet_diagonais(const matdiag_t *A, const real_t *x, real_t *y);
 
 /* ---------- Pré-condicionador de Jacobi ---------- */
-
-// Extrai diagonal e seu inverso (checando zeros)
-int extrai_diag_e_invD(const real_t *A, int n, int k, real_t *D, real_t *invD, real_t eps);
 
 // Extrai diagonal e seu inverso da diagonal
 int extrai_diag_e_invD_diag(const matdiag_t *A, real_t *D, real_t *invD, real_t eps);

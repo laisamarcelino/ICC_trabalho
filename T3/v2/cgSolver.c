@@ -154,18 +154,18 @@ int main(void)
     /* --- Imprimir tempos médios das operações --- */
     rtime_t tempo_op1_medio = (iters > 0) ? (t_op1_total / (rtime_t)iters) : 0.0;
 
-    printf("N = %d\n", n);
-    printf("Tempo médio op1 (CG iteração): %.8g ms\n", tempo_op1_medio);
-    printf("Tempo op2 (resíduo): %.8g ms\n", t_op2);
+    // printf("N = %d\n", n);
+    // printf("Tempo médio op1 (CG iteração): %.8g ms\n", tempo_op1_medio);
+    // printf("Tempo op2 (resíduo): %.8g ms\n", t_op2);
 
-    //printf("%d\n", n);
-    //for (int i = 0; i < n; ++i)
-    //    printf("%.16g%s", x[i], (i + 1 < n ? " " : "\n"));
-    //printf("%.8g\n", norma_delta_x_inf);
-    //printf("%.8g\n", res_norm);
-    //printf("%.8g\n", t_spd + t_pc_setup);
-    //printf("%.8g\n", tempo_op1_medio);
-    //printf("%.8g\n", t_op2);
+    printf("%d\n", n);
+    for (int i = 0; i < n; ++i)
+        printf("%.16g%s", x[i], (i + 1 < n ? " " : "\n"));
+    printf("%.8g\n", norma_delta_x_inf);
+    printf("%.8g\n", res_norm);
+    printf("%.8g\n", t_spd + t_pc_setup);
+    printf("%.8g\n", tempo_op1_medio);
+    printf("%.8g\n", t_op2);
 
     /* ----------------- Liberação de memória ----------------- */
     liberaMatDiag(&ASP);

@@ -1,4 +1,4 @@
-# Trabalho 01 - Solução de Sistemas Lineares Esparsos com Pré-condicionadores
+# Trabalho 02 - Otimização de Desempenho para Solução de Sistemas Lineares Esparsos com Pré-condicionadores
 
 ## Autoria
 
@@ -7,7 +7,7 @@
 
 ## Estrutura do Projeto
 
-O projeto implementa um solucionador de sistemas lineares utilizando o método dos Gradientes Conjugados (CG) e suas variantes pré-condicionadas (PCG), incluindo Jacobi, Gauss-Seidel (SGS) e SSOR. O código está modularizado nos seguintes arquivos:
+O projeto é a versão 2 que implementa um solucionador de sistemas lineares utilizando o método dos Gradientes Conjugados (CG) e suas variantes pré-condicionadas (PCG), incluindo Jacobi, Gauss-Seidel (SGS) e SSOR, de maneira otimizada em relação a versão 1. O código está modularizado nos seguintes arquivos:
 
 ### 1. helpers.h / helpers.c
 
@@ -19,11 +19,12 @@ Funções utilitárias para operações com vetores e matrizes.
 - vet_preenche: Preenche um vetor com um valor constante.
 - vet_axpy: Soma linear de vetores (y := y + alpha*x).
 - vet_escala: Multiplica vetor por escalar.
-- matvet_densa: Multiplica matriz densa A (n×n) por vetor x: y = A*x
-- extrai_diag_e_invD: Extrai diagonal e seu inverso de uma matriz.
-- aplica_jacobi: Aplica pré-condicionador de Jacobi.
-- forward_sweep_DL: Varredura forward para SGS/SSOR.
-- backward_sweep_DU: Varredura backward para SGS/SSOR.
+- matvet_diagonais: Multiplica matriz k-diagonal (armazenada em matdiag_t) por vetor: y = A*x.
+- extrai_diag_e_invD_diag: Extrai a diagonal principal de uma matdiag_t e calcula seu inverso.
+- aplica_jacobi: Aplica pré-condicionador de Jacobi (y = D^{-1} r).
+- varredura_progressiva_DL / varredura_regressiva_DU: Varreduras forward/backward usadas por SGS/SSOR.
+- residuo_l2_v2: Calcula a norma L2 do resíduo r = b - A x usando matvet_diagonais.
+- liberaMatDiag: Libera memória de uma estrutura matdiag_t.
 
 ### 2. pcgc.h / pcgc.c
 
@@ -40,7 +41,6 @@ Implementação do método dos Gradientes Conjugados e seus pré-condicionadores
 
 Programa principal para leitura de parâmetros, montagem do sistema, chamada do solver e saída dos resultados.
 
-- residuo_l2: Calcula a norma do resíduo final.
 - escolhe_precond: Define o valor de ω para o tipo de pré-condicionador.
 - main: Fluxo principal do programa, incluindo leitura de entrada, preparação do sistema, chamada do solver e impressão dos resultados.
 
@@ -48,8 +48,8 @@ Programa principal para leitura de parâmetros, montagem do sistema, chamada do 
 
 Módulo responsável pela geração e manipulação dos sistemas lineares k-diagonais e pela transformação para sistemas simétricos definidos positivos (SPD).
 
-- criaKDiagonal: Gera uma matriz k-diagonal e o vetor de termos independentes.
-- genSimetricaPositiva: Transforma o sistema original em um sistema simétrico definido positivo (AᵗA, Aᵗb).
+- criaKDiagonal_v2: Gera uma matriz k-diagonal armazenada em matdiag_t e o vetor de termos independentes.
+- genSimetricaPositiva_diag: Constrói AᵗA e Aᵗb diretamente na estrutura matdiag_t.
 - generateRandomA: Função interna que gera os coeficientes dos elementos da matriz k-diagonal.
 - generateRandomB: Função interna que gera os termos independentes do sistema linear.
 

@@ -254,7 +254,7 @@ int cg_solve(const matdiag_t *A, const real_t *b, real_t *x,
         // robustez numérica: se denom ~0 e “energia” do resíduo já é pequena, finalize
         if (fabs(vTz) < 1e-30)
         {
-            // NONE: sqrt(r^T r);  PCG: sqrt(r^T y) (aux)
+            // sqrt(r^T r);  PCG: sqrt(r^T y) (aux)
             real_t res_energy = sqrt(fabs(aux));
             if (res_energy < 1e-12)
             {

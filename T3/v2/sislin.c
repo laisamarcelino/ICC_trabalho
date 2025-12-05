@@ -29,33 +29,6 @@ static inline real_t generateRandomB(unsigned int k)
 }
 
 // Cria matriz A k-diagonal e Termos independentes B
-void criaKDiagonal(int n, int k, real_t **A, real_t **B)
-{
-  *A = (real_t *)calloc((size_t)n * (size_t)n, sizeof(real_t));
-  *B = (real_t *)calloc((size_t)n, sizeof(real_t));
-  if (*A == NULL || *B == NULL)
-  {
-    fprintf(stderr, "Erro ao alocar memória em criaKDiagonal\n");
-    exit(2);
-  }
-
-  // nº de diagonais abaixo/acima da principal
-  int p = k / 2;
-
-  for (int i = 0; i < n; i++)
-  {
-    // Preenche a banda da linha i
-    int j0 = (i - p < 0) ? 0 : (i - p);
-    int j1 = (i + p >= n) ? (n - 1) : (i + p);
-    for (int j = j0; j <= j1; j++)
-    {
-      (*A)[IDX(i, j, n)] = generateRandomA((unsigned)i, (unsigned)j, (unsigned)k);
-    }
-    // Termo independente
-    (*B)[i] = generateRandomB((unsigned)k);
-  }
-}
-
 void criaKDiagonal_v2(int n, int k, matdiag_t *A, real_t **B)
 {
   int p = k / 2; // número de diagonais acima/abaixo da principal
@@ -87,54 +60,8 @@ void criaKDiagonal_v2(int n, int k, matdiag_t *A, real_t **B)
   }
 }
 
-// Gera matriz simetrica positiva
-void genSimetricaPositiva(real_t *A, real_t *b, int n,
-                          real_t **ASP, real_t *bsp, rtime_t *tempo)
-{
-  *tempo = timestamp();
 
-  // Alocação da matriz
-  *ASP = (real_t *)calloc(n * n, sizeof(real_t));
-  if (*ASP == NULL)
-  {
-    fprintf(stderr, "Erro ao alocar memória para ASP\n");
-    exit(1);
-  }
-
-  // Atribui valor 0 para B simétrica positiva (Aᵗ·b) ou bsp
-  for (int i = 0; i < n; i++)
-    bsp[i] = 0.0;
-
-  // Calcula ASP (A simétrica positiva (Aᵗ·A))
-  for (int i = 0; i < n; i++)
-  { // linha de Aᵗ (coluna de A)
-    for (int j = 0; j < n; j++)
-    { // coluna de A
-      real_t sum = 0.0;
-      for (int l = 0; l < n; l++)
-      {                             // percorre linha l
-        real_t a_li = A[l * n + i]; // Aᵗ[i][l] == A[l][i]
-        real_t a_lj = A[l * n + j]; // A[l][j]
-        sum += a_li * a_lj;
-      }
-      (*ASP)[i * n + j] = sum;
-    }
-  }
-
-  // Calcula bsp (B simétrica positiva (Aᵗ·b))
-  for (int i = 0; i < n; i++)
-  { // Aᵗ[i][*]
-    real_t sum = 0.0;
-    for (int l = 0; l < n; l++)
-    {
-      sum += A[l * n + i] * b[l]; // Aᵗ[i][l] * b[l] == A[l][i] * b[l]
-    }
-    bsp[i] = sum;
-  }
-
-  *tempo = timestamp() - *tempo;
-}
-
+// Gera AᵗA (matriz simétrica positiva) e Aᵗb na estrutura k-diagonal (matdiag_t)
 void genSimetricaPositiva_diag(const matdiag_t *A, const real_t *b,
                                matdiag_t *ASP, real_t **bsp, rtime_t *tempo)
 {
@@ -212,6 +139,7 @@ void genSimetricaPositiva_diag(const matdiag_t *A, const real_t *b,
     *tempo = timestamp() - *tempo;
 }
 
+// Aloca a estrutura matdiag_t
 static void alloc_matdiag(matdiag_t *A, int n, int k)
 {
   A->n = n;
@@ -235,6 +163,7 @@ static void alloc_matdiag(matdiag_t *A, int n, int k)
   }
 }
 
+// Adiciona (soma) o valor à entrada correspondente (linha, coluna) na estrutura k-diagonal M
 static inline void matdiag_add_entry(matdiag_t *M, int row, int col, real_t val)
 {
   if (!M || row < 0 || col < 0 || row >= M->n || col >= M->n)
