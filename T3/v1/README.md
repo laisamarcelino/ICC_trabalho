@@ -24,6 +24,7 @@ Funções utilitárias para operações com vetores e matrizes.
 - aplica_jacobi: Aplica pré-condicionador de Jacobi.
 - forward_sweep_DL: Varredura forward para SGS/SSOR.
 - backward_sweep_DU: Varredura backward para SGS/SSOR.
+- residuo_l2: Calcula a norma do resíduo final.
 
 ### 2. pcgc.h / pcgc.c
 
@@ -40,7 +41,6 @@ Implementação do método dos Gradientes Conjugados e seus pré-condicionadores
 
 Programa principal para leitura de parâmetros, montagem do sistema, chamada do solver e saída dos resultados.
 
-- residuo_l2: Calcula a norma do resíduo final.
 - escolhe_precond: Define o valor de ω para o tipo de pré-condicionador.
 - main: Fluxo principal do programa, incluindo leitura de entrada, preparação do sistema, chamada do solver e impressão dos resultados.
 

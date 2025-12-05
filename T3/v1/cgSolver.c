@@ -139,7 +139,7 @@ int main(void)
         return 1;
     }
 
-    // --- NOVO: medir tempo de cada iteração (op1) ---
+    // --- Medir tempo de cada iteração (op1) ---
     rtime_t t_op1_total = 0.0;
     int iters = -1;
     real_t norma_delta_x_inf = NAN;
@@ -170,11 +170,11 @@ int main(void)
         t_op2 = timestamp() - t0;
     }
 
-    // --- NOVO: imprimir tempos médios das operações ---
+    // --- imprimir tempos médios das operações ---
     rtime_t tempo_op1_medio = (iters > 0) ? (t_op1_total / (rtime_t)iters) : 0.0;
-    printf("N = %d\n", n);
-    printf("Tempo médio op1 (CG iteração): %.8g ms\n", tempo_op1_medio);
-    printf("Tempo op2 (resíduo): %.8g ms\n", t_op2);
+    // printf("N = %d\n", n);
+    // printf("Tempo médio op1 (CG iteração): %.8g ms\n", tempo_op1_medio);
+    // printf("Tempo op2 (resíduo): %.8g ms\n", t_op2);
 
     /* ----------------- Computar tempos exigidos na saída ------------- */
     rtime_t tempo_pc = t_spd + t_pc_setup;
@@ -185,27 +185,27 @@ int main(void)
     }
 
     /* ----------------- Saída no formato do enunciado ----------------- */
-    //Linha 1: n
-    //printf("%d\n", n);
+    // Linha 1: n
+    printf("%d\n", n);
 
-    //Linha 2: x_1 x_2 ... x_n (com precisão pedida)
-    //for (int i = 0; i < n; ++i)
-    //    printf("%.16g%s", x[i], (i + 1 < n ? " " : "\n"));
+    // Linha 2: x_1 x_2 ... x_n
+    for (int i = 0; i < n; ++i)
+        printf("%.16g%s", x[i], (i + 1 < n ? " " : "\n"));
 
-    //Linha 3: norma (||Δx||_∞ na última iteração) — agora valor EXATO devolvido pelo solver
-    //printf("%.8g\n", norma_delta_x_inf);
+    // Linha 3: norma (||Δx||_∞ na última iteração)
+    printf("%.8g\n", norma_delta_x_inf);
 
-    //Linha 4: residuo = ||r||2 = ||b - A x||2
-    //printf("%.8g\n", res_norm);
+    // Linha 4: residuo = ||r||2 = ||b - A x||2
+    printf("%.8g\n", res_norm);
 
-    //Linha 5: tempo_pc (ms) = preparar SL + setup PC
-    //printf("%.8g\n", tempo_pc);
+    // Linha 5: tempo_pc (ms) = preparar SL + setup PC
+    printf("%.8g\n", tempo_pc);
 
-    //Linha 6: tempo_iter (ms) = tempo médio por iteração (aprox)
-    //printf("%.8g\n", tempo_iter);
+    // Linha 6: tempo_iter (ms) = tempo médio por iteração (aprox)
+    printf("%.8g\n", tempo_iter);
 
-    //Linha 7: tempo_residuo (ms)
-    //printf("%.8g\n", t_op2);
+    // Linha 7: tempo_residuo (ms)
+    printf("%.8g\n", t_op2);
 
     // Liberação de memória
     free(A);
